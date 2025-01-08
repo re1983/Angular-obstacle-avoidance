@@ -34,15 +34,17 @@ def get_bearing(ship1, ship2):
     theta = np.arctan2(delta_pos[1], delta_pos[0])
     angle_to_ship2 = np.degrees(theta)
     relative_bearing = (angle_to_ship2 - ship1.heading) % 360
+    if(relative_bearing > 180):
+        relative_bearing -= 360
     return relative_bearing
 
 # Example usage
 #name, speed, acceleration, heading, Rate_of_Turn, position
-ownship = ShipStatus("Ownship", speed=5.0, acceleration=0, heading=0.0, Rate_of_Turn=0.0, position=[0, 0, 0])
-ship = ShipStatus("Ship A", speed=10.0, acceleration=0, heading=90.0, Rate_of_Turn=18.0, position=[60, 0, 0])
+ownship = ShipStatus("Ownship", speed=5.0, acceleration=0, heading=0.0, Rate_of_Turn=-12.0, position=[0, 0, 0])
+ship = ShipStatus("Ship A", speed=10.0, acceleration=0, heading=45.0, Rate_of_Turn=0.0, position=[-30, -25, 0])
 
 # Simulation parameters
-time_steps = 100
+time_steps = 50
 delta_time = 0.1
 
 # Lists to store positions for plotting
@@ -62,7 +64,7 @@ for _ in range(time_steps):
     bearings.append(bearing)
     # bearing_to_goal = get_bearing(ownship, goal)
     # bearings_to_goal.append(bearing_to_goal)
-    # print("Bearing to Ship A:", bearing)
+    print("Bearing to Ship A:", bearing)
     ownship_positions.append(ownship.position.copy())
     ship_positions.append(ship.position.copy())
     ownship.update(delta_time)
@@ -73,7 +75,7 @@ ownship_positions = np.array(ownship_positions)
 ship_positions = np.array(ship_positions)
 
 plt.figure(figsize=(10, 12))
-plt.subplot(3, 1, 1)
+plt.subplot(4, 1, 1)
 
 # Plotting
 # plt.figure(figsize=(10, 6))
@@ -114,9 +116,9 @@ plt.axis('equal')  # Ensure the aspect ratio is equal
 
 # Convert bearings to numpy array for easier plotting
 bearings = np.array(bearings)
-bearings = np.unwrap(bearings, period=360)  # Unwrap the bearings to remove jumps
+# bearings = np.unwrap(bearings, period=360)  # Unwrap the bearings to remove jumps
 # Plotting the bearing rate
-plt.subplot(3, 1, 2)
+plt.subplot(4, 1, 2)
 plt.plot(bearings, np.arange(time_steps) * delta_time, label='Bearing to Ship A')
 plt.ylabel('Time (s)')
 plt.xlabel('Bearing (degrees)')
@@ -130,13 +132,25 @@ plt.grid(True)
 
 bearing_rate = np.gradient(bearings, delta_time)
 # Plotting the bearing rate
-plt.subplot(3, 1, 3)
+plt.subplot(4, 1, 3)
 plt.plot(np.arange(time_steps) * delta_time, bearing_rate, label='Bearing Rate to Ship A')
 plt.xlabel('Time (s)')
 plt.ylabel('Bearing Rate (degrees/s)')
 plt.title('Bearing Rate to Ship A Over Time')
 plt.legend()
 plt.grid(True)
+
+
+jerk = np.gradient(bearing_rate, delta_time)
+
+plt.subplot(4, 1, 4)
+plt.plot(np.arange(time_steps) * delta_time, jerk, label='Jerk to Ship A')
+plt.xlabel('Time (s)')
+plt.ylabel('Jerk (degrees/s^2)')
+plt.title('Jerk to Ship A Over Time')
+plt.legend()
+plt.grid(True)
+
 plt.show()
 
 
