@@ -40,12 +40,12 @@ def get_bearing(ship1, ship2):
 
 # Example usage
 #name, speed, acceleration, heading, Rate_of_Turn, position
-ownship = ShipStatus("Ownship", speed=5.0, acceleration=0, heading=0.0, Rate_of_Turn=-12.0, position=[0, 0, 0])
-ship = ShipStatus("Ship A", speed=10.0, acceleration=0, heading=45.0, Rate_of_Turn=0.0, position=[-30, -25, 0])
+ownship = ShipStatus("Ownship", speed=5.0, acceleration=0, heading=0.0, Rate_of_Turn=5.0, position=[-50, 0, 0])
+ship = ShipStatus("Ship A", speed=7.07, acceleration=0, heading=135.0, Rate_of_Turn=-0.0, position=[50, -50, 0])
 
 # Simulation parameters
-time_steps = 50
-delta_time = 0.1
+time_steps = 1000
+delta_time = 0.01
 
 # Lists to store positions for plotting
 ownship_positions = []
@@ -64,7 +64,7 @@ for _ in range(time_steps):
     bearings.append(bearing)
     # bearing_to_goal = get_bearing(ownship, goal)
     # bearings_to_goal.append(bearing_to_goal)
-    print("Bearing to Ship A:", bearing)
+    # print("Bearing to Ship A:", bearing)
     ownship_positions.append(ownship.position.copy())
     ship_positions.append(ship.position.copy())
     ownship.update(delta_time)
