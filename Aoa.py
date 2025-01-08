@@ -92,36 +92,6 @@ B_positions = np.array(B_positions)
 azimuth_angles = np.array(azimuth_angles)
 azimuth_derivatives = np.array(azimuth_derivatives)
 
-# # 繪圖
-# plt.figure(figsize=(10, 6))
-
-# # 運動軌跡
-# plt.subplot(2, 1, 1)
-# plt.plot(A_positions[:, 0], A_positions[:, 1], label="Object A")
-# plt.plot(B_positions[:, 0], B_positions[:, 1], label="Object B")
-# plt.scatter(A_positions[0, 0], A_positions[0, 1], color="blue", label="A Start")
-# plt.scatter(B_positions[0, 0], B_positions[0, 1], color="orange", label="B Start")
-# plt.xlabel("X Position")
-# plt.ylabel("Y Position")
-# plt.title("Trajectories of A and B")
-# plt.legend()
-# plt.axis("equal")
-
-# # 方位角導數
-# plt.subplot(2, 1, 2)
-# plt.plot(np.arange(num_steps) * dt, azimuth_derivatives, label="Azimuth Angle Derivative")
-# plt.xlabel("Time (s)")
-# plt.ylabel("Azimuth Angle Derivative (rad/s)")
-# plt.title("Azimuth Angle Derivative vs Time")
-# plt.legend()
-
-# # 方位角
-# plt.figure(figsize=(10, 6))
-# plt.plot(np.arange(num_steps) * dt, azimuth_angles, label="Azimuth Angle")
-# plt.xlabel("Time (s)")
-# plt.ylabel("Azimuth Angle (rad)")
-# plt.title("Azimuth Angle vs Time")
-# plt.legend()
 # 將方位角轉換為度
 azimuth_angles_deg = np.degrees(azimuth_angles)
 
