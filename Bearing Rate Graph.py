@@ -1,18 +1,21 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 class ShipStatus:
-    def __init__(self, name, speed, acceleration, heading, Rate_of_Turn, position, size = 1.0):
+    def __init__(self, name, speed, acceleration, heading, rate_of_turn, position, size = 1.0, max_rate_of_turn = [0, 0], speed_limit = [ 0.5, 10.0]):
         self.name = name
         self.speed = speed
         self.acceleration = acceleration
         self.heading = heading
-        self.Rate_of_Turn = Rate_of_Turn
+        self.rate_of_turn = rate_of_turn
         self.position = np.array(position, dtype=float)
         self.size = size
+        self.max_rate_of_turn = max_rate_of_turn
+        self.speed_limit = speed_limit
 
     def update(self, delta_time=0.01):
-        self.heading = self.heading + self.Rate_of_Turn * delta_time
+        self.heading = self.heading + self.rate_of_turn * delta_time
         self.position += self.speed * delta_time * np.array([
             np.cos(np.radians(self.heading)),
             np.sin(np.radians(self.heading)),
@@ -44,13 +47,22 @@ def get_Angular_diameter(ship1, ship2):
     angular_diameter = 2 * np.arctan(ship2.size / (2 * distance))
     return np.degrees(angular_diameter)
 
+
+def adj_ownship_heading_velocity(bearings, angular_sizes, ship):
+
+    heading = (bearings[-1] - 90) % 360
+    # heading = ship.heading
+    velocity = ship.speed
+
+    return heading, velocity
+
 # Example usage
 #name, speed, acceleration, heading, Rate_of_Turn, position
 # ownship = ShipStatus("Ownship", speed=5.0, acceleration=0, heading=0.0, Rate_of_Turn=-0.0, position=[-50, 0, 0])
 # ship = ShipStatus("Ship A", speed=7.07, acceleration=0, heading=135.0, Rate_of_Turn=-0.0, position=[50, -50, 0])
 
-ownship = ShipStatus("Ownship", speed=0.0, acceleration=0, heading=0.0, Rate_of_Turn=-0.0, position=[0, 0, 0])
-ship = ShipStatus("Ship A", speed=1.0, acceleration=0, heading=90.0, Rate_of_Turn=-0.0, position=[1, -5, 0])
+ownship = ShipStatus("Ownship", speed=0.5, acceleration=0, heading=0.0, rate_of_turn=0.0, position=[0, 0, 0])
+ship = ShipStatus("Ship A", speed=1.0, acceleration=0, heading=90.0, rate_of_turn=0.0, position=[5, -5, 0])
 
 # Simulation parameters
 time_steps = 1000
@@ -79,6 +91,10 @@ for _ in range(time_steps):
     # print("Bearing to Ship A:", bearing)
     ownship_positions.append(ownship.position.copy())
     ship_positions.append(ship.position.copy())
+    # adj_ownship_heading_velocity(bearings, angular_sizes, ship)
+    # ownship.heading, ownship.speed = adj_ownship_heading_velocity(bearings, angular_sizes, ownship)
+
+    # ownship.speed = time_steps * delta_time
     ownship.update(delta_time)
     ship.update(delta_time)
 
@@ -129,8 +145,15 @@ plt.ylabel('Time (s)')
 plt.xlabel('Bearing (degrees)')
 plt.title('Bearing to Ship A Over Time')
 plt.axvline(x=0, color='r', linestyle='--')  # Add a vertical line at x=0
-# plt.axvline(x=180, color='b', linestyle='--')
-# plt.axvline(x=-180, color='b', linestyle='--')
+plt.axvline(x=45, color='g', linestyle='--')
+plt.axvline(x=90, color='b', linestyle='--')
+plt.axvline(x=135, color='g', linestyle='--')
+plt.axvline(x=180, color='b', linestyle='--')
+plt.axvline(x=-45, color='g', linestyle='--')
+plt.axvline(x=-90, color='b', linestyle='--')
+plt.axvline(x=-135, color='g', linestyle='--')
+plt.axvline(x=-180, color='b', linestyle='--')
+
 plt.legend()
 plt.grid(True)
 # # plt.gca().invert_yaxis()  # Invert the Y-axis
@@ -165,7 +188,7 @@ plt.title('Jerk to Ship A Over Time')
 plt.legend()
 plt.grid(True)
 
-plt.show()
+
 
 
 # plt.subplot(3, 1, 3)
@@ -177,3 +200,32 @@ plt.show()
 # plt.legend()
 # plt.grid(True)
 # plt.show()
+
+# # Convert positions to numpy arrays for easier plotting
+# ownship_positions = np.array(ownship_positions)
+# ship_positions = np.array(ship_positions)
+
+# Plot ego-center map
+plt.figure(figsize=(10, 6))
+# Plotting ego-center map
+plt.plot(ship_positions[:, 1] - ownship_positions[:, 1], ship_positions[:, 0] - ownship_positions[:, 0], label='Ship A')
+plt.xlabel('Relative East (m)')
+plt.ylabel('Relative North (m)')
+plt.title('Ego-Center Map of Ship Positions Over Time')
+plt.legend()
+plt.grid(True)
+plt.axis('equal')  # Ensure the aspect ratio is equal
+
+# Plotting
+plt.figure(figsize=(10, 6))
+plt.plot(ownship_positions[:, 1], ownship_positions[:, 0], label='Ownship')
+plt.plot(ship_positions[:, 1], ship_positions[:, 0], label='Ship A')
+plt.xlabel('East (m)')
+plt.ylabel('North (m)')
+plt.title('Ship Positions Over Time in NED Coordinates (Rotated 90 Degrees)')
+plt.legend()
+plt.grid(True)
+plt.axis('equal')  # Ensure the aspect ratio is equal
+
+
+plt.show()
