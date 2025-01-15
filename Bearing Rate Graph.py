@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
+import math
+import cmath
 
 class ShipStatus:
     def __init__(self, name, speed, acceleration, heading, rate_of_turn, position, size = 1.0, max_rate_of_turn = [0, 0], speed_limit = [ 0.5, 10.0]):
@@ -56,13 +57,38 @@ def adj_ownship_heading_velocity(bearings, angular_sizes, ship):
 
     return heading, velocity
 
+def angle_difference(angle1, angle2):
+    """
+    計算兩個角度的差，範圍為 [-π, π]。
+    Args:
+        angle1: float, 第一個角度（弧度）
+        angle2: float, 第二個角度（弧度）
+
+    Returns:
+        angle_diff: float, 角度差（弧度），範圍 [-π, π]
+    """
+    # 計算差值並映射到 [-π, π]
+    angle_diff = (angle2 - angle1) % (2 * math.pi)
+    if angle_diff > math.pi:
+        angle_diff -= 2 * math.pi
+
+    return angle_diff
+
+def angle_difference_in_deg(angle1, angle2):
+
+    angle_diff = (angle2 - angle1) % 360
+    if angle_diff > 180:
+        angle_diff -= 360
+
+    return angle_diff
+
 # Example usage
 #name, speed, acceleration, heading, Rate_of_Turn, position
 # ownship = ShipStatus("Ownship", speed=5.0, acceleration=0, heading=0.0, Rate_of_Turn=-0.0, position=[-50, 0, 0])
 # ship = ShipStatus("Ship A", speed=7.07, acceleration=0, heading=135.0, Rate_of_Turn=-0.0, position=[50, -50, 0])
 
-ownship = ShipStatus("Ownship", speed=0.5, acceleration=0, heading=0.0, rate_of_turn=0.0, position=[0, 0, 0])
-ship = ShipStatus("Ship A", speed=1.0, acceleration=0, heading=90.0, rate_of_turn=0.0, position=[5, -5, 0])
+ownship = ShipStatus("Ownship", speed=0.5, acceleration=0, heading=0.0, rate_of_turn=0.0, position=[-10, 0, 0])
+ship = ShipStatus("Ship A", speed=1, acceleration=0, heading=-90.0, rate_of_turn=0, position=[5, -5, 0])
 
 # Simulation parameters
 time_steps = 1000
@@ -73,6 +99,7 @@ ownship_positions = []
 ship_positions = []
 bearings = []
 angular_sizes = []
+bearings_difference = []
 # goal = ShipStatus("Ship A", speed=0.0, acceleration=0, heading=0.0, Rate_of_Turn=0.0, position=[0, 0, 0])
 # bearings_to_goal = []
 
@@ -97,6 +124,11 @@ for _ in range(time_steps):
     # ownship.speed = time_steps * delta_time
     ownship.update(delta_time)
     ship.update(delta_time)
+
+    update_bearing = get_bearing(ownship, ship)
+    # angle_difference(bearing, update_bearing)
+    # bearings_difference.append(angle_difference(math.radians(bearing), math.radians(update_bearing))/delta_time*180/math.pi)
+    bearings_difference.append(angle_difference_in_deg(bearing, update_bearing)/delta_time)
 
 # Convert positions to numpy arrays for easier plotting
 ownship_positions = np.array(ownship_positions)
@@ -132,6 +164,7 @@ plt.axis('equal')  # Ensure the aspect ratio is equal
 bearings = np.array(bearings)
 # print(len(bearings))
 angular_sizes = np.array(angular_sizes)
+bearing_difference = np.array(bearings_difference)
 # print(len(angular_sizes))
 # print(angular_sizes)
 # bearings = np.unwrap(bearings, period=360)  # Unwrap the bearings to remove jumps
@@ -178,13 +211,21 @@ plt.legend()
 plt.grid(True)
 
 
-jerk = np.gradient(bearing_rate, delta_time)
+# jerk = np.gradient(bearing_rate, delta_time)
+
+# plt.subplot(5, 1, 5)
+# plt.plot(np.arange(time_steps) * delta_time, jerk, label='Jerk to Ship A')
+# plt.xlabel('Time (s)')
+# plt.ylabel('Jerk (degrees/s^2)')
+# plt.title('Jerk to Ship A Over Time')
+# plt.legend()
+# plt.grid(True)
 
 plt.subplot(5, 1, 5)
-plt.plot(np.arange(time_steps) * delta_time, jerk, label='Jerk to Ship A')
+plt.plot(np.arange(time_steps) * delta_time, bearings_difference, label='Bearing Difference')
 plt.xlabel('Time (s)')
-plt.ylabel('Jerk (degrees/s^2)')
-plt.title('Jerk to Ship A Over Time')
+plt.ylabel('Bearing Difference (degrees)')
+plt.title('Bearing Difference Over Time')
 plt.legend()
 plt.grid(True)
 
