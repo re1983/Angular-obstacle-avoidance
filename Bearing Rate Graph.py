@@ -74,6 +74,35 @@ def angle_difference_in_deg(angle1, angle2):
     return angle_diff
 
 
+def adj_ownship_heading(bearings, bearings_difference, angular_sizes, ship, goal, delta_time=0.01):
+    velocity = ship.velocity
+    rate_of_turn = ship.rate_of_turn
+    angular = angular_sizes[-1] / delta_time
+    if len(bearings_difference) > 1:
+        theta_goal = get_bearing(ship, goal)
+        rate_of_turn = theta_goal
+        distance = get_distance_3d(ship.position, goal.position)
+        if distance < 1:
+            velocity = distance
+        else:
+            velocity = 1.0
+
+        if abs(bearings_difference[-1]) == 0.0:
+            if bearings[-1] <= 0 and bearings[-1] >= -90:
+                rate_of_turn = -angular
+            elif bearings[-1] <= -90 and bearings[-1] > -180:
+                rate_of_turn = angular
+            elif bearings[-1] > 0 and bearings[-1] < 90:
+                rate_of_turn = angular
+            elif bearings[-1] > 90 and bearings[-1] <= 180:
+                rate_of_turn = -angular
+        else:
+            angular_size = angular_sizes[-1]
+            if angular_size *1.8 >= abs(bearings_difference[-1]):
+                rate_of_turn = np.sign(bearings_difference[-1]) * angular_size / delta_time
+            
+    return rate_of_turn, velocity
+
 def adj_ownship_rate_of_turn(bearings, bearings_difference, angular_size, ship, goal, delta_time=0.01):
 
     velocity = ship.velocity
@@ -131,7 +160,7 @@ def adj_ownship_rate_of_turn(bearings, bearings_difference, angular_size, ship, 
 # ship = ShipStatus("Ship A", velocity=7.07, acceleration=0, heading=135.0, Rate_of_Turn=-0.0, position=[50, -50, 0])
 
 ownship = ShipStatus("Ownship", velocity=1.0, acceleration=0, heading=0.0, rate_of_turn=-0.0, position=[0, 0, 0])
-ship = ShipStatus("Ship A", velocity=1.0, acceleration=0, heading=-90.0, rate_of_turn=0, position=[10, 10, 0])
+ship = ShipStatus("Ship A", velocity=1.0, acceleration=0, heading=180.0, rate_of_turn=0, position=[10, 10, 0])
 goal = ShipStatus("Goal", velocity=0.0, acceleration=0, heading=0.0, rate_of_turn=0.0, position=[20, 0, 0])
 
 # Simulation parameters
@@ -162,7 +191,8 @@ for _ in range(time_steps):
     # bearing_to_goal = get_bearing(ownship, goal)
     # bearings_to_goal.append(bearing_to_goal)
     # print("Bearing to Ship A:", bearing)
-    ownship.rate_of_turn, ownship.velocity = adj_ownship_rate_of_turn(bearings, bearings_difference, angular_size, ownship, goal, delta_time)
+    # ownship.rate_of_turn, ownship.velocity = adj_ownship_rate_of_turn(bearings, bearings_difference, angular_size, ownship, goal, delta_time)
+    ownship.rate_of_turn, ownship.velocity = adj_ownship_heading(bearings, bearings_difference, angular_sizes, ownship, goal, delta_time)
     ownship_positions.append(ownship.position.copy())
     ship_positions.append(ship.position.copy())
     # adj_ownship_heading_velocity(bearings, angular_sizes, ship)
