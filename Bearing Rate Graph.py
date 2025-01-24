@@ -58,16 +58,7 @@ def get_Angular_diameter(ship1, ship2):
 #     return heading, velocity
 
 def angle_difference(angle1, angle2):
-    """
-    計算兩個角度的差，範圍為 [-π, π]。
-    Args:
-        angle1: float, 第一個角度（弧度）
-        angle2: float, 第二個角度（弧度）
 
-    Returns:
-        angle_diff: float, 角度差（弧度），範圍 [-π, π]
-    """
-    # 計算差值並映射到 [-π, π]
     angle_diff = (angle2 - angle1) % (2 * math.pi)
     if angle_diff > math.pi:
         angle_diff -= 2 * math.pi
@@ -109,7 +100,7 @@ def adj_ownship_rate_of_turn(bearings, bearings_difference, angular_size, ship, 
 
         # elif abs(bearings_difference[-1]) > 0.01 and angular_size > 0.1:
         else:
-            rate_of_turn = -(1/bearings_difference[-1])
+            rate_of_turn = -(1/bearings_difference[-1]) * angular_size
             # normalize=(bearings_difference[-1] - 1) / (100 - 1)
 
             # if bearings_difference[-1] > 0:
@@ -139,12 +130,12 @@ def adj_ownship_rate_of_turn(bearings, bearings_difference, angular_size, ship, 
 # ownship = ShipStatus("Ownship", velocity=5.0, acceleration=0, heading=0.0, Rate_of_Turn=-0.0, position=[-50, 0, 0])
 # ship = ShipStatus("Ship A", velocity=7.07, acceleration=0, heading=135.0, Rate_of_Turn=-0.0, position=[50, -50, 0])
 
-ownship = ShipStatus("Ownship", velocity=0.99, acceleration=0, heading=0.0, rate_of_turn=-0.0, position=[0, 0, 0])
-ship = ShipStatus("Ship A", velocity=1.0, acceleration=0, heading=-90.0, rate_of_turn=0, position=[5, 5, 0])
+ownship = ShipStatus("Ownship", velocity=1.0, acceleration=0, heading=0.0, rate_of_turn=-0.0, position=[0, 0, 0])
+ship = ShipStatus("Ship A", velocity=1.0, acceleration=0, heading=-90.0, rate_of_turn=0, position=[10, 10, 0])
 goal = ShipStatus("Goal", velocity=0.0, acceleration=0, heading=0.0, rate_of_turn=0.0, position=[20, 0, 0])
 
 # Simulation parameters
-time_steps = 2000
+time_steps = 3000
 delta_time = 0.01
 
 # Lists to store positions for plotting
