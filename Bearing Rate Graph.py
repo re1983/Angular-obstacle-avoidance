@@ -4,7 +4,7 @@ import math
 import cmath
 
 class ShipStatus:
-    def __init__(self, name, velocity, acceleration, heading, rate_of_turn, position, size = 1.0, max_rate_of_turn = [0, 0], velocity_limit = [ 0.5, 10.0]):
+    def __init__(self, name, velocity, acceleration, heading, rate_of_turn, position, size = 2.0, max_rate_of_turn = [0, 0], velocity_limit = [ 0.5, 10.0]):
         self.name = name
         self.velocity = velocity
         self.acceleration = acceleration
@@ -87,19 +87,24 @@ def adj_ownship_heading(bearings, bearings_difference, angular_sizes, ship, goal
         else:
             velocity = 1.0
 
-        if abs(bearings_difference[-1]) == 0.0:
-            if bearings[-1] <= 0 and bearings[-1] >= -90:
-                rate_of_turn = -angular
-            elif bearings[-1] <= -90 and bearings[-1] > -180:
-                rate_of_turn = angular
-            elif bearings[-1] > 0 and bearings[-1] < 90:
-                rate_of_turn = angular
-            elif bearings[-1] > 90 and bearings[-1] <= 180:
-                rate_of_turn = -angular
-        else:
-            angular_size = angular_sizes[-1]
-            if angular_size *1.8 >= abs(bearings_difference[-1]):
-                rate_of_turn = np.sign(bearings_difference[-1]) * angular_size / delta_time
+        # if abs(bearings_difference[-1]) == 0.0:
+        #     if bearings[-1] >= 0 and bearings[-1] < 90:
+        #         rate_of_turn = angular
+        #     elif bearings[-1] >= 90 and bearings[-1] < 180:
+        #         rate_of_turn = -angular
+        #     elif bearings[-1] >= -180 and bearings[-1] < -90:
+        #         rate_of_turn = angular
+        #     elif bearings[-1] >= -90 and bearings[-1] < 0:
+        #         rate_of_turn = -angular
+        angular_size = angular_sizes[-1]
+        if angular_size >= abs(bearings_difference[-1]):
+            rate_of_turn = (np.sign(bearings_difference[-1]) * angular_size) / delta_time
+        # else:
+        #     angular_size = angular_sizes[-1]
+        #     if angular_size >= abs(bearings_difference[-1]):
+        #         rate_of_turn = (np.sign(bearings_difference[-1]) * angular_size) / delta_time
+        # print(rate_of_turn)
+        # rate_of_turn = ship.rate_of_turn
             
     return rate_of_turn, velocity
 
@@ -160,7 +165,7 @@ def adj_ownship_rate_of_turn(bearings, bearings_difference, angular_size, ship, 
 # ship = ShipStatus("Ship A", velocity=7.07, acceleration=0, heading=135.0, Rate_of_Turn=-0.0, position=[50, -50, 0])
 
 ownship = ShipStatus("Ownship", velocity=1.0, acceleration=0, heading=0.0, rate_of_turn=-0.0, position=[0, 0, 0])
-ship = ShipStatus("Ship A", velocity=1.0, acceleration=0, heading=180.0, rate_of_turn=0, position=[10, 10, 0])
+ship = ShipStatus("Ship A", velocity=1.0, acceleration=0, heading=90.0, rate_of_turn=0, position=[10, -10, 0])
 goal = ShipStatus("Goal", velocity=0.0, acceleration=0, heading=0.0, rate_of_turn=0.0, position=[20, 0, 0])
 
 # Simulation parameters
