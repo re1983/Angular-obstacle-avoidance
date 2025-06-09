@@ -283,9 +283,9 @@ class SimulationEnvironment:
     def __init__(self):
         """Initialize simulation environment 初始化模拟环境"""
         # Create ships with sizes 创建带尺寸的船舶
-        self.ownship = Ship("Ownship", position=[0, 0], velocity=15.0, heading=0.0, 
+        self.ownship = Ship("Ownship", position=[0, 0], velocity=10.0, heading=0.0, 
                            size=15.0, max_turn_rate=10.0, max_angular_accel=10.0)
-        self.ship_a = Ship("Ship A", position=[1000, 300], velocity=12.0, heading=270.0, 
+        self.ship_a = Ship("Ship A", position=[1000, 1000], velocity=10.0, heading=270.0, 
                           size=20.0, max_turn_rate=5.0, max_angular_accel=5.0)
         self.goal = Ship("Goal", position=[0, 5000], velocity=0, heading=0, size=5.0)
         
