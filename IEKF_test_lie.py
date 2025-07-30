@@ -1,183 +1,155 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.linalg import expm, logm
 
 # ======================
 # 參數設定
 # ======================
-dt = 0.1                # 時間步長（秒）
-total_time = 30          # 總模擬時間（秒）
+dt = 0.1
+total_time = 30
 steps = int(total_time / dt)
 
-# 物體真實參數
-true_s = 15.0            # 真實尺寸 (10-70m)
-true_obj_pos = np.array([10.0, 10.0])  # 初始位置 (x, y)
-true_obj_vel = np.array([-1.0, 1.0])    # 速度 (vx, vy)
+# 物體真實參數（全局座標系）
+true_s = 40.0
+true_obj_global = np.array([80.0, 60.0])
+true_obj_vel_global = np.array([-1.0, 0.5])
 
-# 觀察者運動參數（等速轉向）
-obs_speed = 1.50                        # 固定速度 (m/s)
-obs_heading_init = np.deg2rad(0)       # 初始航向角（弧度）
-obs_rate_of_turn = np.deg2rad(3)       # 轉向速率（弧度/秒）
-obs_pos_init = np.array([0.0, 0.0])     # 初始位置
-
-# 初始估計值（帶噪聲）
-init_obj_pos = true_obj_pos + np.random.normal(0, 20, 2)
-init_obj_vel = true_obj_vel + np.random.normal(0, 1, 2)
-init_s = np.clip(true_s + np.random.normal(0, 10), 10, 70)
-
-# 過程噪聲協方差
-Q = np.diag([0.5, 0.5, 0.1, 0.1, 0.5])  # [x, y, vx, vy, s]
-
-# 觀測噪聲協方差
-R = np.diag([0.0, 0.0])              # 方位角 (rad), 角直徑 (rad)
+# 觀察者運動參數
+obs_speed = 5.0
+obs_heading_rate = np.deg2rad(10)  # 航向變化率
+obs_pos_global = np.zeros((steps, 2))
+obs_heading = np.zeros(steps)
 
 # ======================
-# IEKF 類實現（保持不變）
+# IEKF 類實現
 # ======================
 class InvariantEKF:
     def __init__(self, init_state, init_cov, Q, R):
-        self.state = init_state.copy()  # [x, y, vx, vy, s]
-        self.cov = init_cov.copy()
+        self.state = init_state.copy()  # [rho, phi, phi_dot, theta, s]
+        self.cov = init_cov
         self.Q = Q
         self.R = R
 
-    def predict(self):
+    def predict(self, delta_psi_obs):
         F = np.eye(5)
-        F[0, 2] = dt
-        F[1, 3] = dt
+        F[1, 2] = dt
         self.state = F @ self.state
+        
+        # 補償觀察者航向變化
+        self.state[1] -= delta_psi_obs
+        
         self.cov = F @ self.cov @ F.T + self.Q
-        self.state[4] = np.clip(self.state[4], 10, 20)
+        self._apply_constraints()
 
-    def update(self, z, obs_pos):
-        x, y, vx, vy, s = self.state
-        dx = x - obs_pos[0]
-        dy = y - obs_pos[1]
-        d = np.sqrt(dx**2 + dy**2)
-        
-        phi_pred = np.arctan2(dy, dx)
-        theta_pred = s / d
-        
-        e = np.array([z[0] - phi_pred, z[1] - theta_pred])
-        
-        H = np.zeros((2, 5))
-        H[0, 0] = -dy / (dx**2 + dy**2)
-        H[0, 1] = dx / (dx**2 + dy**2)
-        H[1, 0] = (-s * dx) / (d**3)
-        H[1, 1] = (-s * dy) / (d**3)
-        H[1, 4] = 1.0 / d
+    def update(self, z):
+        rho, phi, phi_dot, theta, s = self.state
+        H = np.array([
+            [0, 1, 0, 0, 0],
+            [s, 0, 0, rho, 0]
+        ])
+        z_pred = np.array([phi, s*rho])
+        e = z - z_pred
         
         S = H @ self.cov @ H.T + self.R
         K = self.cov @ H.T @ np.linalg.inv(S)
         
         self.state += K @ e
         self.cov = (np.eye(5) - K @ H) @ self.cov
+        self._apply_constraints()
+
+    def _apply_constraints(self):
+        # 尺寸約束
         self.state[4] = np.clip(self.state[4], 10, 70)
+        # 物理合理性約束
+        self.state[0] = max(1e-3, self.state[0])  # 避免負深度
+
+    def get_global_pos(self, obs_pos, obs_heading):
+        # 轉換到全局座標系
+        rho, phi, *_ = self.state
+        local_x = np.cos(phi) / rho
+        local_y = np.sin(phi) / rho
+        
+        R = np.array([
+            [np.cos(obs_heading), -np.sin(obs_heading)],
+            [np.sin(obs_heading), np.cos(obs_heading)]
+        ])
+        global_pos = R @ np.array([local_x, local_y]) + obs_pos
+        return global_pos
 
 # ======================
-# 生成觀察者軌跡（等速轉向）
+# 生成數據
 # ======================
-obs_pos = np.zeros((steps, 2))
-obs_heading = np.zeros(steps)
-obs_pos[0] = obs_pos_init
-obs_heading[0] = obs_heading_init
+# 初始化
+obs_pos_global[0] = [0, 0]
+obs_heading[0] = np.deg2rad(45)
 
 for i in range(1, steps):
-    obs_heading[i] = obs_heading[i-1] + obs_rate_of_turn * dt
-    obs_pos[i, 0] = obs_pos[i-1, 0] + obs_speed * np.cos(obs_heading[i]) * dt
-    obs_pos[i, 1] = obs_pos[i-1, 1] + obs_speed * np.sin(obs_heading[i]) * dt
+    obs_heading[i] = obs_heading[i-1] + obs_heading_rate * dt
+    dx = obs_speed * dt * np.cos(obs_heading[i])
+    dy = obs_speed * dt * np.sin(obs_heading[i])
+    obs_pos_global[i] = obs_pos_global[i-1] + [dx, dy]
 
-# ======================
-# 生成物體真實軌跡與觀測數據（保持不變）
-# ======================
-obj_pos = np.zeros((steps, 2))
-obj_pos[0] = true_obj_pos
+# 生成物體全局軌跡
+obj_global = np.zeros((steps, 2))
+obj_global[0] = true_obj_global
 for i in range(1, steps):
-    obj_pos[i] = obj_pos[i-1] + true_obj_vel * dt
+    obj_global[i] = obj_global[i-1] + true_obj_vel_global * dt
 
+# 生成觀測數據
 observations = []
 for i in range(steps):
-    dx = obj_pos[i, 0] - obs_pos[i, 0]
-    dy = obj_pos[i, 1] - obs_pos[i, 1]
-    d = np.sqrt(dx**2 + dy**2)
-    phi = np.arctan2(dy, dx) + np.random.normal(0, np.sqrt(R[0,0]))
-    theta = (true_s / d) + np.random.normal(0, np.sqrt(R[1,1]))
-    observations.append([phi, theta])
+    # 轉換到局部座標系
+    rel_pos = obj_global[i] - obs_pos_global[i]
+    local_x = np.cos(-obs_heading[i]) * rel_pos[0] - np.sin(-obs_heading[i]) * rel_pos[1]
+    local_y = np.sin(-obs_heading[i]) * rel_pos[0] + np.cos(-obs_heading[i]) * rel_pos[1]
+    
+    rho = 1.0 / np.linalg.norm([local_x, local_y])
+    phi = np.arctan2(local_y, local_x)
+    theta = true_s * rho
+    
+    # 添加噪聲
+    # phi_noisy = phi + np.random.normal(0, np.sqrt(R[0,0]))
+    phi_noisy = phi
+    theta_noisy = theta + np.random.normal(0, np.sqrt(R[1,1]))
+    observations.append([phi_noisy, theta_noisy])
 
 # ======================
-# 初始化濾波器與運行（保持不變）
+# 初始化與運行濾波器
 # ======================
-init_state = np.array([init_obj_pos[0], init_obj_pos[1], 
-                      init_obj_vel[0], init_obj_vel[1], init_s])
-init_cov = np.diag([20.0, 20.0, 2.0, 2.0, 10.0])
+init_rho = 1.0 / np.linalg.norm(obj_global[0] - obs_pos_global[0])
+init_phi = np.arctan2(obj_global[0,1]-obs_pos_global[0,1], 
+                      obj_global[0,0]-obs_pos_global[0,0]) - obs_heading[0]
+init_state = np.array([init_rho, init_phi, 0, true_s*init_rho, true_s])
+init_cov = np.diag([0.1, 0.1, 0.01, 0.05, 10.0])
+Q = np.diag([1e-4, 1e-3, 1e-4, 1e-4, 0.1])
+R = np.diag([0.005, 0.002])
+
 iekf = InvariantEKF(init_state, init_cov, Q, R)
 
-estimated_pos = []
-estimated_vel = []
-estimated_s = []
+estimated_global = []
 for i in range(steps):
-    iekf.predict()
-    iekf.update(observations[i], obs_pos[i])
-    
-    estimated_pos.append(iekf.state[:2].copy())
-    estimated_vel.append(iekf.state[2:4].copy())
-    estimated_s.append(iekf.state[4])
+    if i > 0:
+        delta_psi = obs_heading[i] - obs_heading[i-1]
+        iekf.predict(delta_psi)
+    iekf.update(observations[i])
+    global_pos = iekf.get_global_pos(obs_pos_global[i], obs_heading[i])
+    estimated_global.append(global_pos)
 
-# Convert lists to NumPy arrays for easier slicing
-estimated_pos = np.array(estimated_pos)
-estimated_vel = np.array(estimated_vel)
-estimated_s = np.array(estimated_s)
+estimated_global = np.array(estimated_global)
 
 # ======================
-# 可視化（新增航向角）
+# 可視化
 # ======================
-plt.figure(figsize=(15, 10))
-
-# 軌跡對比
-plt.subplot(2, 2, 1)
-plt.plot(obj_pos[:,0], obj_pos[:,1], 'b-', label='True Object Path')
-plt.plot(estimated_pos[:,0], estimated_pos[:,1], 'r--', label='Estimated Path')
-plt.plot(obs_pos[:,0], obs_pos[:,1], 'g-.', label='Observer Path')
-plt.quiver(obs_pos[::10, 0], obs_pos[::10, 1], 
+plt.figure(figsize=(12, 6))
+plt.plot(obj_global[:,0], obj_global[:,1], 'b-', label='True Object Path')
+plt.plot(estimated_global[:,0], estimated_global[:,1], 'r--', label='Estimated Path')
+plt.plot(obs_pos_global[:,0], obs_pos_global[:,1], 'g-.', label='Observer Path')
+plt.quiver(obs_pos_global[::10,0], obs_pos_global[::10,1], 
            np.cos(obs_heading[::10]), np.sin(obs_heading[::10]),
            color='green', scale=20, label='Observer Heading')
-plt.xlabel('X (m)')
-plt.ylabel('Y (m)')
-plt.title('Trajectory Comparison with Observer Heading')
+plt.xlabel('Global X (m)')
+plt.ylabel('Global Y (m)')
 plt.legend()
 plt.grid(True)
-
-# 位置误差分析
-pos_error = np.linalg.norm(estimated_pos - obj_pos, axis=1)
-plt.subplot(2, 2, 2)
-plt.plot(np.arange(steps)*dt, pos_error, 'm-')
-plt.xlabel('Time (s)')
-plt.ylabel('Position Error (m)')
-plt.title('Position Estimation Error')
-plt.grid(True)
-
-# 速度估计分析
-plt.subplot(2, 2, 3)
-plt.plot(np.arange(steps)*dt, estimated_vel[:,0], 'r--', label='Estimated Vx')
-plt.plot(np.arange(steps)*dt, estimated_vel[:,1], 'b--', label='Estimated Vy')
-plt.plot(np.arange(steps)*dt, [true_obj_vel[0]]*steps, 'r-', label='True Vx')
-plt.plot(np.arange(steps)*dt, [true_obj_vel[1]]*steps, 'b-', label='True Vy')
-plt.xlabel('Time (s)')
-plt.ylabel('Velocity (m/s)')
-plt.title('Velocity Estimation')
-plt.legend()
-plt.grid(True)
-
-# 尺寸估计分析
-plt.subplot(2, 2, 4)
-plt.plot(np.arange(steps)*dt, estimated_s, 'g-', label='Estimated Size')
-plt.axhline(y=true_s, color='purple', linestyle='--', label='True Size')
-plt.axhline(y=10, color='gray', linestyle=':', label='Size Bounds')
-plt.axhline(y=70, color='gray', linestyle=':')
-plt.xlabel('Time (s)')
-plt.ylabel('Size (m)')
-plt.title('Object Size Estimation')
-plt.legend()
-plt.grid(True)
-
-plt.tight_layout()
+plt.title('Global Coordinate Estimation with IEKF')
 plt.show()
