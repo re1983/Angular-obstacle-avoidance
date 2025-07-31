@@ -64,24 +64,12 @@ def adj_ownship_heading(bearings, bearings_difference, angular_sizes, ship, goal
     rate_of_turn = ship.rate_of_turn
 
     if len(bearings_difference) > 1:
-
-
-        # angular = angular_sizes[-1]
-
-        # if abs(bearings_difference[-1]) == 0.0:
-        #     if bearings[-1] >= 0 and bearings[-1] < 90:
-        #         rate_of_turn = angular
-        #     elif bearings[-1] >= 90 and bearings[-1] < 180:
-        #         rate_of_turn = -angular
-        #     elif bearings[-1] >= -180 and bearings[-1] < -90:
-        #         rate_of_turn = angular
-        #     elif bearings[-1] >= -90 and bearings[-1] < 0:
-        #         rate_of_turn = -angular
+        # Check for CBDR (Constant Bearing, Decreasing Range) condition
         if abs(bearings_difference[-1]*delta_time) <= angular_sizes[-1] and angular_sizes[-1] > 3.0:
-            # print(f"Adjusting rate of turn: {rate_of_turn} degrees/s")
-            # rate_of_turn = ship.rate_of_turn + np.sign(ship.rate_of_turn) * (angular_sizes[-1] - abs(bearings_difference[-1]*delta_time))
+            # Collision avoidance: apply opposite direction turn to increase bearing rate
             rate_of_turn = -np.sign(bearings_difference[-1])* (angular_sizes[-1] - abs(bearings_difference[-1]*delta_time))
         else:
+            # Navigate to goal when no collision threat
             theta_goal = get_bearing(ship, goal)
             rate_of_turn = theta_goal
             distance = get_distance_3d(ship.position, goal.position)
@@ -99,14 +87,25 @@ def run_simulation():
     goal = ShipStatus("Goal", velocity=0.0, acceleration=0, heading=0.0, rate_of_turn=0.0, position=[20, 0, 0])
     time_steps = 6000
     delta_time = 0.01
+    
+    # Initialize data storage lists
     ownship_positions, ship_positions = [], []
     bearings, angular_sizes, bearings_difference, distances = [], [], [], []
+    ownship_velocities, ship_velocities = [], []  # Add velocity tracking
+    ownship_headings = []  # Add heading tracking
+    
     for _ in range(time_steps):
         bearing = get_bearing(ownship, ship)
         bearings.append(bearing)
         angular_size = get_angular_diameter(ownship, ship)
         angular_sizes.append(angular_size)
         distances.append(get_distance_3d(ownship.position, ship.position))
+        
+        # Record current states before update
+        ownship_velocities.append(ownship.velocity)
+        ship_velocities.append(ship.velocity)
+        ownship_headings.append(ownship.heading)
+        
         ownship.rate_of_turn, ownship.velocity = adj_ownship_heading(bearings, bearings_difference, angular_sizes, ownship, goal, delta_time)
         ownship_positions.append(ownship.position.copy())
         ship_positions.append(ship.position.copy())
@@ -114,22 +113,35 @@ def run_simulation():
         ship.update(delta_time)
         update_bearing = get_bearing(ownship, ship)
         bearings_difference.append(angle_difference_in_deg(bearing, update_bearing) / delta_time)
+    
+    # Convert to numpy arrays
     ownship_positions = np.array(ownship_positions)
     ship_positions = np.array(ship_positions)
     bearings = np.array(bearings)
     angular_sizes = np.array(angular_sizes)
     bearings_difference = np.array(bearings_difference)
     distances = np.array(distances)
+    ownship_velocities = np.array(ownship_velocities)
+    ship_velocities = np.array(ship_velocities)
+    ownship_headings = np.array(ownship_headings)
+    
     jerk = np.gradient(bearings_difference, delta_time)
-    plot_simulation_results(ownship_positions, ship_positions, bearings, angular_sizes, bearings_difference, distances, jerk, delta_time)
+    plot_simulation_results(ownship_positions, ship_positions, bearings, angular_sizes, 
+                           bearings_difference, distances, jerk, delta_time, 
+                           ownship_velocities, ship_velocities, ownship_headings)
 
-def plot_simulation_results(ownship_positions, ship_positions, bearings, angular_sizes, bearings_difference, distances, jerk, delta_time):
-    plt.figure(figsize=(20, 24))
-    plt.subplot(6, 1, 1)
+def plot_simulation_results(ownship_positions, ship_positions, bearings, angular_sizes, 
+                           bearings_difference, distances, jerk, delta_time, 
+                           ownship_velocities, ship_velocities, ownship_headings):
+    fig = plt.figure(figsize=(24, 16))  # Adjust figure size for 2 rows
+    
+    # Row 1: Ship positions, bearings, angular sizes, distances
+    # 1. Ship Positions
+    plt.subplot(2, 4, 1)
     ownship_line, = plt.plot(ownship_positions[:, 1], ownship_positions[:, 0], label='Ownship')
     ship_line, = plt.plot(ship_positions[:, 1], ship_positions[:, 0], label='Ship A')
     
-    # 添加箭頭指示方向
+    # Add direction arrows
     plt.annotate('', xy=(ownship_positions[-1, 1], ownship_positions[-1, 0]), 
                 xytext=(ownship_positions[-2, 1], ownship_positions[-2, 0]), 
                 arrowprops=dict(arrowstyle='->', color=ownship_line.get_color()))
@@ -137,7 +149,7 @@ def plot_simulation_results(ownship_positions, ship_positions, bearings, angular
                 xytext=(ship_positions[-2, 1], ship_positions[-2, 0]), 
                 arrowprops=dict(arrowstyle='->', color=ship_line.get_color()))
     
-    # 畫出船艦大小圓圈（在最終位置）
+    # Draw ship size circles (at final positions)
     ownship_circle = plt.Circle((ownship_positions[-1, 1], ownship_positions[-1, 0]), 
                                1.0, color=ownship_line.get_color(), fill=False, linestyle='--', alpha=0.7)
     ship_circle = plt.Circle((ship_positions[-1, 1], ship_positions[-1, 0]), 
@@ -145,9 +157,9 @@ def plot_simulation_results(ownship_positions, ship_positions, bearings, angular
     plt.gca().add_patch(ownship_circle)
     plt.gca().add_patch(ship_circle)
     
-    # 每隔10秒畫一個實點
-    time_interval = 10.0  # 10秒間隔
-    point_interval = int(time_interval / delta_time)  # 轉換為時間步間隔
+    # Plot points every 10 seconds
+    time_interval = 10.0  # 10 second intervals
+    point_interval = int(time_interval / delta_time)  # Convert to time step intervals
     
     for i in range(0, len(ownship_positions), point_interval):
         plt.plot(ownship_positions[i, 1], ownship_positions[i, 0], 'o', 
@@ -157,11 +169,13 @@ def plot_simulation_results(ownship_positions, ship_positions, bearings, angular
     
     plt.xlabel('East (m)')
     plt.ylabel('North (m)')
-    plt.title('Ship Positions Over Time in NED Coordinates (Rotated 90 Degrees)')
+    plt.title('Ship Positions Over Time')
     plt.legend()
     plt.grid(True)
     plt.axis('equal')
-    plt.subplot(6, 1, 2)
+    
+    # 2. Bearing Plot
+    plt.subplot(2, 4, 2)
     plt.plot(bearings, np.arange(len(bearings)) * delta_time, label='Bearing to Ship A')
     half_angular_sizes = angular_sizes / 2
     plt.plot(bearings - half_angular_sizes, np.arange(len(bearings)) * delta_time)
@@ -170,46 +184,69 @@ def plot_simulation_results(ownship_positions, ship_positions, bearings, angular
     plt.xlabel('Bearing (degrees)')
     plt.title('Bearing to Ship A Over Time')
     plt.axvline(x=0, color='r', linestyle='--')
-    plt.axvline(x=45, color='g', linestyle='--')
-    plt.axvline(x=90, color='b', linestyle='--')
-    plt.axvline(x=135, color='g', linestyle='--')
-    plt.axvline(x=180, color='b', linestyle='--')
-    plt.axvline(x=-45, color='g', linestyle='--')
-    plt.axvline(x=-90, color='b', linestyle='--')
-    plt.axvline(x=-135, color='g', linestyle='--')
-    plt.axvline(x=-180, color='b', linestyle='--')
+    for angle in [45, 90, 135, 180, -45, -90, -135, -180]:
+        plt.axvline(x=angle, color='g' if angle % 90 != 0 else 'b', linestyle='--')
     plt.legend()
     plt.grid(True)
-    plt.subplot(6, 1, 3)
+    
+    # 3. Angular Size Plot
+    plt.subplot(2, 4, 3)
     plt.plot(np.arange(len(angular_sizes)) * delta_time, angular_sizes, label='Angular Size of Ship A')
     plt.xlabel('Time (s)')
     plt.ylabel('Angular Size (degrees)')
     plt.title('Angular Size of Ship A Over Time')
     plt.legend()
     plt.grid(True)
-    plt.subplot(6, 1, 4)
+    
+    # 4. Distance Plot
+    plt.subplot(2, 4, 4)
     plt.plot(np.arange(len(distances)) * delta_time, distances, label='Distance to Ship A')
     plt.xlabel('Time (s)')
     plt.ylabel('Distance (m)')
-    plt.axvline(x=0, color='r', linestyle='--')
-    plt.axhline(y=0, color='r', linestyle='--')
     plt.title('Distance to Ship A Over Time')
     plt.legend()
     plt.grid(True)
-    plt.subplot(6, 1, 5)
-    plt.plot(np.arange(len(bearings_difference)) * delta_time, bearings_difference, label='Bearing Difference')
+    
+    # Row 2: Bearing difference, ship velocities, ownship heading, empty
+    # 5. Bearing Difference Plot
+    plt.subplot(2, 4, 5)
+    plt.plot(np.arange(len(bearings_difference)) * delta_time, bearings_difference, label='Bearing Rate')
     plt.xlabel('Time (s)')
-    plt.ylabel('Bearing Difference (degrees/s)')
-    plt.title('Bearing Difference Over Time')
+    plt.ylabel('Bearing Rate (degrees/s)')
+    plt.title('Bearing Rate Over Time')
     plt.legend()
     plt.grid(True)
-    plt.subplot(6, 1, 6)
-    plt.plot(np.arange(len(jerk)) * delta_time, jerk, label='Jerk to Ship A')
+    
+    # 6. Ship Velocities Plot (replacing Jerk)
+    plt.subplot(2, 4, 6)
+    plt.plot(np.arange(len(ownship_velocities)) * delta_time, ownship_velocities, 
+             label='Ownship Velocity', color='blue')
+    plt.plot(np.arange(len(ship_velocities)) * delta_time, ship_velocities, 
+             label='Ship A Velocity', color='red')
     plt.xlabel('Time (s)')
-    plt.ylabel('Jerk (degrees/s^2)')
-    plt.title('Jerk to Ship A Over Time')
+    plt.ylabel('Velocity (m/s)')
+    plt.title('Ship Velocities Over Time')
     plt.legend()
     plt.grid(True)
+    
+    # 7. Ownship Heading Plot
+    plt.subplot(2, 4, 7)
+    plt.plot(np.arange(len(ownship_headings)) * delta_time, ownship_headings, 
+             label='Ownship Heading', color='blue')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Heading (degrees)')
+    plt.title('Ownship Heading Over Time')
+    plt.legend()
+    plt.grid(True)
+    
+    # 8. Empty subplot for future use
+    plt.subplot(2, 4, 8)
+    plt.text(0.5, 0.5, 'Available for\nFuture Plot', 
+             horizontalalignment='center', verticalalignment='center',
+             transform=plt.gca().transAxes, fontsize=12)
+    plt.title('Reserved Plot Area')
+    
+    plt.tight_layout()
     plt.show()
 
 if __name__ == "__main__":
