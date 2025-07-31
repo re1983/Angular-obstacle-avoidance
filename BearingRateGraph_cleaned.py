@@ -128,8 +128,33 @@ def plot_simulation_results(ownship_positions, ship_positions, bearings, angular
     plt.subplot(6, 1, 1)
     ownship_line, = plt.plot(ownship_positions[:, 1], ownship_positions[:, 0], label='Ownship')
     ship_line, = plt.plot(ship_positions[:, 1], ship_positions[:, 0], label='Ship A')
-    plt.annotate('', xy=(ownship_positions[-1, 1], ownship_positions[-1, 0]), xytext=(ownship_positions[-2, 1], ownship_positions[-2, 0]), arrowprops=dict(arrowstyle='->', color=ownship_line.get_color()))
-    plt.annotate('', xy=(ship_positions[-1, 1], ship_positions[-1, 0]), xytext=(ship_positions[-2, 1], ship_positions[-2, 0]), arrowprops=dict(arrowstyle='->', color=ship_line.get_color()))
+    
+    # 添加箭頭指示方向
+    plt.annotate('', xy=(ownship_positions[-1, 1], ownship_positions[-1, 0]), 
+                xytext=(ownship_positions[-2, 1], ownship_positions[-2, 0]), 
+                arrowprops=dict(arrowstyle='->', color=ownship_line.get_color()))
+    plt.annotate('', xy=(ship_positions[-1, 1], ship_positions[-1, 0]), 
+                xytext=(ship_positions[-2, 1], ship_positions[-2, 0]), 
+                arrowprops=dict(arrowstyle='->', color=ship_line.get_color()))
+    
+    # 畫出船艦大小圓圈（在最終位置）
+    ownship_circle = plt.Circle((ownship_positions[-1, 1], ownship_positions[-1, 0]), 
+                               1.0, color=ownship_line.get_color(), fill=False, linestyle='--', alpha=0.7)
+    ship_circle = plt.Circle((ship_positions[-1, 1], ship_positions[-1, 0]), 
+                            1.0, color=ship_line.get_color(), fill=False, linestyle='--', alpha=0.7)
+    plt.gca().add_patch(ownship_circle)
+    plt.gca().add_patch(ship_circle)
+    
+    # 每隔10秒畫一個實點
+    time_interval = 10.0  # 10秒間隔
+    point_interval = int(time_interval / delta_time)  # 轉換為時間步間隔
+    
+    for i in range(0, len(ownship_positions), point_interval):
+        plt.plot(ownship_positions[i, 1], ownship_positions[i, 0], 'o', 
+                color=ownship_line.get_color(), markersize=6)
+        plt.plot(ship_positions[i, 1], ship_positions[i, 0], 'o', 
+                color=ship_line.get_color(), markersize=6)
+    
     plt.xlabel('East (m)')
     plt.ylabel('North (m)')
     plt.title('Ship Positions Over Time in NED Coordinates (Rotated 90 Degrees)')
