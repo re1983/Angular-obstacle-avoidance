@@ -95,7 +95,7 @@ def adj_ownship_heading(absolute_bearings, absolute_bearings_difference, angular
     if len(absolute_bearings_difference) > 1:
         # Check for CBDR (Constant Bearing, Decreasing Range) condition using absolute bearings
         # If absolute bearing rate is near zero AND angular size is increasing, we have CBDR
-        if abs(absolute_bearings_difference[-1]*delta_time) <= angular_sizes[-1] and angular_sizes[-1] > 5.0:
+        if abs(absolute_bearings_difference[-1]*delta_time) <= angular_sizes[-1]:
             # Get current relative bearing to target ship to determine avoidance direction
             current_relative_bearing = get_bearing(ship, target_ship)
             
@@ -104,9 +104,9 @@ def adj_ownship_heading(absolute_bearings, absolute_bearings_difference, angular
             
             # For CBDR situation, decide turn direction based on relative bearing
             # Goal: turn away from the approaching ship to avoid collision
-            if abs(absolute_bearings_difference[-1]) < 0.1:  # True CBDR (bearing rate ≈ 0)
+            if abs(absolute_bearings_difference[-1]) < -5:  # True CBDR (bearing rate ≈ 0)
                 # Turn away from ship based on its relative position
-                if current_relative_bearing < 0:  # Ship is on port side (left)
+                if current_relative_bearing < -5:  # Ship is on port side (left)
                     rate_of_turn = -avoidance_gain  # Turn left (negative)
                 else:  # Ship is on starboard side (right)
                     rate_of_turn = avoidance_gain   # Turn right (positive)
@@ -123,7 +123,7 @@ def adj_ownship_heading(absolute_bearings, absolute_bearings_difference, angular
                     # Target behind: turn same direction as absolute bearing rate
                     rate_of_turn = np.sign(absolute_bearings_difference[-1]) * avoidance_gain
                 
-        else:
+        if  angular_sizes[-1] < 2.0:
             # Navigate to goal when no collision threat
             theta_goal = get_bearing(ship, goal)  # Use relative bearing for goal navigation
             rate_of_turn = theta_goal
@@ -138,9 +138,9 @@ def adj_ownship_heading(absolute_bearings, absolute_bearings_difference, angular
 
 def run_simulation():
     ownship = ShipStatus("Ownship", velocity=1.0, acceleration=0, heading=0.0, rate_of_turn=-0.0, position=[0, 0, 0])
-    ship = ShipStatus("Ship A", velocity=1.0, acceleration=0, heading=90.0, rate_of_turn=0, position=[10, -10, 0])
-    goal = ShipStatus("Goal", velocity=0.0, acceleration=0, heading=0.0, rate_of_turn=0.0, position=[20, 0, 0])
-    time_steps = 8000
+    ship = ShipStatus("Ship A", velocity=1.0, acceleration=0, heading=180.0, rate_of_turn=0, position=[50, 0, 0])
+    goal = ShipStatus("Goal", velocity=0.0, acceleration=0, heading=0.0, rate_of_turn=0.0, position=[50, 0, 0])
+    time_steps = 5000
     delta_time = 0.01
     
     # Initialize data storage lists
