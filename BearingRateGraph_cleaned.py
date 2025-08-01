@@ -145,7 +145,7 @@ def run_simulation():
     # Initialize ownship and target ship statuses
     ownship = ShipStatus("Ownship", velocity=1.0, acceleration=0, heading=0, rate_of_turn=0, position=[0, 0, 0])
     # Target ship (Ship A) with initial position and velocity
-    ship = ShipStatus("Ship A", velocity=1.0, acceleration=0, heading=135.0, rate_of_turn=0, position=[50, -25, 0])
+    ship = ShipStatus("Ship A", velocity=1.0, acceleration=0, heading=-135.0, rate_of_turn=0, position=[40, 25, 0])
     # Goal ship for navigation
     goal = ShipStatus("Goal", velocity=0.0, acceleration=0, heading=0, rate_of_turn=0, position=[50, 0, 0])
     time_steps = 5000
@@ -258,7 +258,17 @@ def plot_simulation_results(ownship_positions, ship_positions, bearings, angular
     plt.title('Ship Positions Over Time')
     plt.legend()
     plt.grid(True)
+
+    xlims = plt.xlim()
+    ylims = plt.ylim()
+    x_ticks = np.arange(np.floor(xlims[0]/5)*5, np.ceil(xlims[1]/5)*5+1, 5)
+    y_ticks = np.arange(np.floor(ylims[0]/5)*5, np.ceil(ylims[1]/5)*5+1, 5)
+    plt.gca().set_xticks(x_ticks)
+    plt.gca().set_yticks(y_ticks)
     plt.axis('equal')
+    # plt.gca().set_xticks(np.arange(plt.xlim()[0], plt.xlim()[1]+1, 5))
+    # plt.gca().set_yticks(np.arange(plt.ylim()[0], plt.ylim()[1]+1, 5))
+    # plt.gca().set_aspect('equal', adjustable='box')
     
     # 2. Bearing Plot (both relative and absolute)
     plt.subplot(2, 4, 2)
