@@ -93,24 +93,18 @@ def adj_ownship_heading(absolute_bearings, absolute_bearings_difference, angular
     """
     velocity = ship.velocity
     rate_of_turn = ship.rate_of_turn
-    max_rate_of_turn = ship.max_rate_of_turn[0]  # Use first element for simplicity
+    max_rate_of_turn = ship.max_rate_of_turn[0]
+    current_relative_bearing = get_bearing(ship, target_ship)
+    avoidance_gain = angular_sizes[-1]**2  # Use angular size as urgency factor
 
     if len(absolute_bearings_difference) >= 1:
-        avoidance_gain = angular_sizes[-1]**2  # Use angular size as urgency factor
-        # Check for CBDR (Constant Bearing, Decreasing Range) condition using absolute bearings
-        # If absolute bearing rate is near zero AND angular size is increasing, we have CBDR
+        
         if abs(absolute_bearings_difference[-1]*delta_time) <= angular_sizes[-1]:
-        # if abs(absolute_bearings_difference[-1]*delta_time) <= avoidance_gain * 2:
-            # print(f"CBDR detected: Absolute Bearing Rate = {absolute_bearings_difference[-1]}, Angular Size = {angular_sizes[-1]}")
-            # Get current relative bearing to target ship to determine avoidance direction
-            current_relative_bearing = get_bearing(ship, target_ship)
-            # Collision avoidance: determine turn direction based on relative position
-            # For CBDR situation, decide turn direction based on relative bearing
-            # Goal: turn away from the approaching ship to avoid collision
+
             rounded_rate = np.round(absolute_bearings_difference[-1], 5)
             if abs(rounded_rate) <= 1e-5:  # True CBDR (bearing rate ≈ 0)
                 # Turn away from ship based on its relative position
-                if current_relative_bearing <= 0:  # Ship is on port side (left)
+                if current_relative_bearing < 0:  # Ship is on port side (left)
                     rate_of_turn = -max_rate_of_turn  # Turn left (negative)
                 else:  # Ship is on starboard side (right)
                     rate_of_turn = max_rate_of_turn   # Turn right (positive)
@@ -145,7 +139,7 @@ def run_simulation():
     # Initialize ownship and target ship statuses
     ownship = ShipStatus("Ownship", velocity=1.0, acceleration=0, heading=0, rate_of_turn=0, position=[0, 0, 0])
     # Target ship (Ship A) with initial position and velocity
-    ship = ShipStatus("Ship A", velocity=1.0, acceleration=0, heading=-135.0, rate_of_turn=0, position=[40, 25, 0])
+    ship = ShipStatus("Ship A", velocity=1.0, acceleration=0, heading=-180.0, rate_of_turn=0, position=[50, -1, 0])
     # Goal ship for navigation
     goal = ShipStatus("Goal", velocity=0.0, acceleration=0, heading=0, rate_of_turn=0, position=[50, 0, 0])
     time_steps = 5000
