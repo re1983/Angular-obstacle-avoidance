@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import math
 
 class ShipStatus:
-    def __init__(self, name, velocity, acceleration, heading, rate_of_turn, position, size=0.5, max_rate_of_turn=[12, 12], velocity_limit=[0.5, 10.0]):
+    def __init__(self, name, velocity, acceleration, heading, rate_of_turn, position, size=1.0, max_rate_of_turn=[12, 12], velocity_limit=[0.5, 10.0]):
         self.name = name
         self.velocity = velocity
         self.acceleration = acceleration
@@ -139,7 +139,7 @@ def run_simulation():
     # Initialize ownship and target ship statuses
     ownship = ShipStatus("Ownship", velocity=1.0, acceleration=0, heading=0, rate_of_turn=0, position=[0, 0, 0], size=0.5)
     # Target ship (Ship A) with initial position and velocity
-    ship = ShipStatus("Ship A", velocity=1.0, acceleration=0, heading=-180.0, rate_of_turn=0, position=[50, -1, 0], size=0.5)
+    ship = ShipStatus("Ship A", velocity=1.0, acceleration=0, heading=90.0, rate_of_turn=0, position=[25, -25, 0], size=0.5)
     # Goal ship for navigation
     goal = ShipStatus("Goal", velocity=0.0, acceleration=0, heading=0, rate_of_turn=0, position=[50, 0, 0])
     time_steps = 5000
@@ -207,12 +207,14 @@ def run_simulation():
     plot_simulation_results(ownship_positions, ship_positions, bearings, angular_sizes, 
                            bearings_difference, distances, jerk, delta_time, 
                            ownship_velocities, ship_velocities, ownship_headings, 
-                           absolute_bearings, absolute_bearings_difference)
+                           absolute_bearings, absolute_bearings_difference,
+                           ownship.size, ship.size, goal)
 
 def plot_simulation_results(ownship_positions, ship_positions, bearings, angular_sizes, 
                            bearings_difference, distances, jerk, delta_time, 
                            ownship_velocities, ship_velocities, ownship_headings,
-                           absolute_bearings, absolute_bearings_difference):
+                           absolute_bearings, absolute_bearings_difference,
+                           ownship_size, ship_size, goal):
     fig = plt.figure(figsize=(24, 16))  # Adjust figure size for 2 rows
     
     # Row 1: Ship positions, bearings, angular sizes, distances
@@ -230,10 +232,13 @@ def plot_simulation_results(ownship_positions, ship_positions, bearings, angular
                 arrowprops=dict(arrowstyle='->', color=ship_line.get_color()))
     
     # Draw ship size circles (at final positions)
-    ownship_circle = plt.Circle((ownship_positions[-1, 1], ownship_positions[-1, 0]), 
-                               1.0, color=ownship_line.get_color(), fill=False, linestyle='--', alpha=0.7)
-    ship_circle = plt.Circle((ship_positions[-1, 1], ship_positions[-1, 0]), 
-                            1.0, color=ship_line.get_color(), fill=False, linestyle='--', alpha=0.7)
+    ownship_circle = plt.Circle((ownship_positions[-1, 1], ownship_positions[-1, 0]),
+        ownship_size / 2, color=ownship_line.get_color(), fill=False, linestyle='--', alpha=1.0)
+    ship_circle = plt.Circle((ship_positions[-1, 1], ship_positions[-1, 0]),
+        ship_size / 2, color=ship_line.get_color(), fill=False, linestyle='--', alpha=1.0)
+    goal_circle = plt.Circle((goal.position[1], goal.position[0]),
+        1, color='Red', fill=False, linestyle='--', alpha=1.0)
+    plt.gca().add_patch(goal_circle)
     plt.gca().add_patch(ownship_circle)
     plt.gca().add_patch(ship_circle)
     
