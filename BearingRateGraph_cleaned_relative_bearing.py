@@ -77,13 +77,13 @@ def angle_difference_in_deg(angle1, angle2):
         angle_diff -= 360
     return angle_diff
 
-def adj_ownship_heading(absolute_bearings, absolute_bearings_difference, angular_sizes, ship, goal, target_ship, delta_time=0.01):
+def adj_ownship_heading(bearings_difference, absolute_bearings_difference, angular_sizes, ship, goal, target_ship, delta_time=0.01):
     """
     Adjust ownship heading based on CBDR (Constant Bearing, Decreasing Range) principle.
     Now uses absolute bearings for proper CBDR detection.
     
     Args:
-        absolute_bearings: List of absolute bearings to target ship
+        bearings_difference: List of relative bearings rate changes
         absolute_bearings_difference: List of absolute bearing rate changes
         angular_sizes: List of angular sizes of target ship
         ship: Own ship object
@@ -97,11 +97,12 @@ def adj_ownship_heading(absolute_bearings, absolute_bearings_difference, angular
     current_relative_bearing = get_bearing(ship, target_ship)
     avoidance_gain = angular_sizes[-1]**2  # Use angular size as urgency factor
 
-    if len(absolute_bearings_difference) >= 1:
-        
-        if abs(absolute_bearings_difference[-1]*delta_time) <= angular_sizes[-1]:
+    # if len(absolute_bearings_difference) >= 1:
+    if len(bearings_difference) >= 1:
 
-            rounded_rate = np.round(absolute_bearings_difference[-1], 5)
+        if abs(bearings_difference[-1]*delta_time) <= angular_sizes[-1]:
+
+            rounded_rate = np.round(bearings_difference[-1], 5)
             if abs(rounded_rate) <= 1e-5:  # True CBDR (bearing rate ≈ 0)
                 # Turn away from ship based on its relative position
                 if current_relative_bearing < 0:  # Ship is on port side (left)
@@ -117,10 +118,10 @@ def adj_ownship_heading(absolute_bearings, absolute_bearings_difference, angular
                 # Rear sector: +90° to +180° and -90° to -180° (abs(relative_bearing) > 90°)
                 if abs(current_relative_bearing) < 90:  # Target is ahead (front 180° sector)
                     # Target ahead: turn opposite to absolute bearing rate direction to accelerate avoidance
-                    rate_of_turn = -np.sign(absolute_bearings_difference[-1]) * avoidance_gain
+                    rate_of_turn = -np.sign(bearings_difference[-1]) * avoidance_gain
                 else:  # Target is behind (rear 180° sector)
                     # Target behind: turn same direction as absolute bearing rate
-                    rate_of_turn = np.sign(absolute_bearings_difference[-1]) * avoidance_gain
+                    rate_of_turn = np.sign(bearings_difference[-1]) * avoidance_gain
 
         if  angular_sizes[-1] < 2.0:
             # Navigate to goal when no collision threat
@@ -167,7 +168,7 @@ def run_simulation():
         ownship_headings.append(ownship.heading)
         
         # Use absolute bearing difference for CBDR detection
-        ownship.rate_of_turn, ownship.velocity = adj_ownship_heading(absolute_bearings, absolute_bearings_difference, angular_sizes, ownship, goal, ship, delta_time)
+        ownship.rate_of_turn, ownship.velocity = adj_ownship_heading(bearings_difference, absolute_bearings_difference, angular_sizes, ownship, goal, ship, delta_time)
         ownship_positions.append(ownship.position.copy())
         ship_positions.append(ship.position.copy())
         
