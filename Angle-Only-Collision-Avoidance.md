@@ -64,7 +64,11 @@ $$
 $$
 
 $$
-\mathbf{p}_{o,k+1} = \mathbf{p}_{o,k} + v_k \Delta t \begin{bmatrix} \cos(\psi_k \pi/180) \\ \sin(\psi_k \pi/180) \end{bmatrix}
+\mathbf{p}_{o,k+1} = \mathbf{p}_{o,k} + v_k \Delta t 
+\begin{pmatrix}
+\cos(\psi_k \cdot \pi/180) \\
+\sin(\psi_k \cdot \pi/180)
+\end{pmatrix}
 $$
 
 where $u_k$ is rate-of-turn (deg/s) saturated by $u_{\text{max}}$, and $v_k$ the forward speed (m/s).
