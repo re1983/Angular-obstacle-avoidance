@@ -23,10 +23,10 @@ $$
 \beta = ((\theta - \psi) \bmod 360) \in (-180, 180] .
 $$
 
-Euclidean range is $R = \lVert \Delta\mathbf{p} \rVert$. If the contact's apparent angular diameter is $\alpha$ and its physical diameter is $D$, then
+Euclidean range is $R = \|\Delta\mathbf{p}\|$. If the contact's apparent angular diameter is $\alpha$ and its physical diameter is $D$, then
 
 $$
-\alpha = 2\arctan\!\left(\frac{D}{2R}\right) \quad \Rightarrow \quad R = \frac{D}{2\tan(\alpha/2)} .
+\alpha = 2\arctan\left(\frac{D}{2R}\right) \quad \Rightarrow \quad R = \frac{D}{2\tan(\alpha/2)} .
 $$
 
 In angle-only control, $R$ is not directly used by the controller; $\alpha$ is used as a proxy for encounter urgency.
@@ -84,15 +84,15 @@ Let $\dot{\theta}_k$ be the absolute bearing rate. Define an urgency gain $g_k =
 - Else, accelerate separation using the sign of $\dot{\theta}_k$:
   $$
   u_k = \begin{cases}
-  -\mathrm{sgn}(\dot{\theta}_k)\,g_k, & |\beta_k| < 90^\circ \\ 
-  \phantom{-}\mathrm{sgn}(\dot{\theta}_k)\,g_k, & |\beta_k| \ge 90^\circ
+  -\text{sgn}(\dot{\theta}_k) \cdot g_k, & |\beta_k| < 90^\circ \\ 
+  +\text{sgn}(\dot{\theta}_k) \cdot g_k, & |\beta_k| \ge 90^\circ
   \end{cases}
   $$
 - If $\alpha_k < \alpha_{\text{nav}}$ (no threat), steer toward goal bearing $\beta^{\text{goal}}_k$: $u_k = \beta^{\text{goal}}_k$.
 
 ### Relative-bearing controller (CBDR by $\dot{\beta}$)
 
-Same structure, but replace $\dot{\theta}$ with $\dot{\beta}$: threshold on $|\dot{\beta}_k|\,\Delta t \le \alpha_k$ and use $\mathrm{sgn}(\dot{\beta}_k)$ in the non-CBDR branch.
+Same structure, but replace $\dot{\theta}$ with $\dot{\beta}$: threshold on $|\dot{\beta}_k|\,\Delta t \le \alpha_k$ and use $\text{sgn}(\dot{\beta}_k)$ in the non-CBDR branch.
 
 ## Visualization
 
