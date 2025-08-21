@@ -101,7 +101,7 @@ The mathematical model must align with the actual implementation in `BearingRate
 - Code: `distance`, `bearing`, `heading`, `target_heading`
 
 **Control Law**:
-- Mathematical: $u = f(\alpha, \dot{	heta}, 	ext{CBDR status})$
+- Mathematical: $u = f(\alpha, \dot{\theta}, \text{CBDR status})$
 - Code: `angular_velocity` calculation in control loop
 
 **Key Verification Points**:
@@ -115,8 +115,7 @@ The mathematical model must align with the actual implementation in `BearingRate
    Code: `abs(bearing_rate * dt) <= alpha`
 
 3. **Control Gain**:
-   $$g = \alpha^2 = \left(\frac{D}{R}
-ight)^2$$
+   $$g = \alpha^2 = \left(\frac{D}{R}\right)^2$$
    Code: `gain = alpha**2`
 
 ### 6.2 Parameter Consistency
