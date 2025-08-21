@@ -60,12 +60,11 @@ Two controllers share identical kinematics and differ only by which bearing-rate
 Heading and position update with step $\Delta t$:
 
 $$
-\psi_{k+1} = \psi_k + u_k\,\Delta t, \quad
-\mathbf{p}_{o,k+1} = \mathbf{p}_{o,k} + v_k\,\Delta t
-\begin{bmatrix}
-\cos(\psi_k\,\pi/180)\\[2pt]
-\sin(\psi_k\,\pi/180)
-\end{bmatrix},
+\psi_{k+1} = \psi_k + u_k \Delta t
+$$
+
+$$
+\mathbf{p}_{o,k+1} = \mathbf{p}_{o,k} + v_k \Delta t \begin{bmatrix} \cos(\psi_k \pi/180) \\ \sin(\psi_k \pi/180) \end{bmatrix}
 $$
 
 where $u_k$ is rate-of-turn (deg/s) saturated by $u_{\text{max}}$, and $v_k$ the forward speed (m/s).
