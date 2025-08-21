@@ -14,7 +14,7 @@ This note formalizes a simple, angle-only collision avoidance method for two-shi
 Absolute (true) bearing from ownship to the contact is
 
 $$
-\theta = \mathrm{atan2}(\Delta y, \Delta x) \;\;[\deg] \quad \text{wrapped to } [0,360) .
+\theta = \text{atan2}(\Delta y, \Delta x) \text{ [deg]} \quad \text{wrapped to } [0,360) .
 $$
 
 Relative bearing (starboard-positive, port-negative) is
@@ -42,14 +42,14 @@ $$
 In discrete time with step $\Delta t$, the controller monitors a bearing-rate surrogate
 
 $$
-\dot{\theta} \;\approx\; \frac{\theta_{k+1} - \theta_k}{\Delta t}, \qquad
-\dot{\beta} \;\approx\; \frac{\beta_{k+1} - \beta_k}{\Delta t} .
+\dot{\theta} \approx \frac{\theta_{k+1} - \theta_k}{\Delta t}, \qquad
+\dot{\beta} \approx \frac{\beta_{k+1} - \beta_k}{\Delta t} .
 $$
 
 To add robustness, the decision compares the magnitude of bearing change over one step to the current angular diameter:
 
 $$
-|\dot{\theta}|\,\Delta t \;\le\; \alpha \quad \text{or} \quad |\dot{\beta}|\,\Delta t \;\le\; \alpha .
+|\dot{\theta}|\,\Delta t \leq \alpha \quad \text{or} \quad |\dot{\beta}|\,\Delta t \leq \alpha .
 $$
 
 ## Control policies
