@@ -14,7 +14,7 @@ This note formalizes a simple, angle-only collision avoidance method for two-shi
 Absolute (true) bearing from ownship to the contact is
 
 $$
-\theta = \operatorname{atan2}(\Delta y, \Delta x) \;\;[\deg] \quad \text{wrapped to } [0,360) .
+\theta = \mathrm{atan2}(\Delta y, \Delta x) \;\;[\deg] \quad \text{wrapped to } [0,360) .
 $$
 
 Relative bearing (starboard-positive, port-negative) is
@@ -84,15 +84,15 @@ Let $\dot{\theta}_k$ be the absolute bearing rate. Define an urgency gain $g_k =
 - Else, accelerate separation using the sign of $\dot{\theta}_k$:
   $$
   u_k = \begin{cases}
-  -\operatorname{sgn}(\dot{\theta}_k)\,g_k, & |\beta_k| < 90^\circ \\ 
-  \phantom{-}\operatorname{sgn}(\dot{\theta}_k)\,g_k, & |\beta_k| \ge 90^\circ
+  -\mathrm{sgn}(\dot{\theta}_k)\,g_k, & |\beta_k| < 90^\circ \\ 
+  \phantom{-}\mathrm{sgn}(\dot{\theta}_k)\,g_k, & |\beta_k| \ge 90^\circ
   \end{cases}
   $$
 - If $\alpha_k < \alpha_{\text{nav}}$ (no threat), steer toward goal bearing $\beta^{\text{goal}}_k$: $u_k = \beta^{\text{goal}}_k$.
 
 ### Relative-bearing controller (CBDR by $\dot{\beta}$)
 
-Same structure, but replace $\dot{\theta}$ with $\dot{\beta}$: threshold on $|\dot{\beta}_k|\,\Delta t \le \alpha_k$ and use $\operatorname{sgn}(\dot{\beta}_k)$ in the non-CBDR branch.
+Same structure, but replace $\dot{\theta}$ with $\dot{\beta}$: threshold on $|\dot{\beta}_k|\,\Delta t \le \alpha_k$ and use $\mathrm{sgn}(\dot{\beta}_k)$ in the non-CBDR branch.
 
 ## Visualization
 
