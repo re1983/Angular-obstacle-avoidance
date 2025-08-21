@@ -2,6 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
+# Navigation threshold constant (degrees)
+ALPHA_NAV = 1.0  # No collision threat below this angular diameter
+
 class ShipStatus:
     def __init__(self, name, velocity, acceleration, heading, rate_of_turn, position, size=1.0, max_rate_of_turn=[12, 12], velocity_limit=[0.5, 10.0]):
         self.name = name
@@ -116,7 +119,7 @@ def adj_ownship_heading_absolute(absolute_bearings, absolute_bearings_difference
                 else:  # Target is behind
                     rate_of_turn = np.sign(absolute_bearings_difference[-1]) * avoidance_gain
 
-        if angular_sizes[-1] < 2.0:
+        if angular_sizes[-1] < ALPHA_NAV:
             # Navigate to goal when no collision threat
             theta_goal = get_bearing(ship, goal)
             rate_of_turn = theta_goal
@@ -154,7 +157,7 @@ def adj_ownship_heading_relative(bearings, bearings_difference, angular_sizes, s
                 else:  # Target is behind
                     rate_of_turn = np.sign(bearings_difference[-1]) * avoidance_gain
 
-        if angular_sizes[-1] < 2.0:
+        if angular_sizes[-1] < ALPHA_NAV:
             # Navigate to goal when no collision threat
             theta_goal = get_bearing(ship, goal)
             rate_of_turn = theta_goal
