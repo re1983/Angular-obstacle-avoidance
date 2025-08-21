@@ -94,7 +94,7 @@ Consider barrier function $B(R)$. Suppose there exists finite time $T$ such that
 
 4. These control actions break CBDR condition in finite time, making $\dot{R}$ positive or non-negative, which is a contradiction.
 
-Therefore $R(t) > R_{\text{safe}}$ for all $t \geq 0$. □
+Therefore $R(t) > R_{\text{safe}}$ for all $t \geq 0$.
 
 ### 3.2 Boundedness Proof
 
@@ -111,7 +111,7 @@ Therefore $R(t) > R_{\text{safe}}$ for all $t \geq 0$. □
 4. **Composite Lyapunov function**: 
    $$V(R, \beta) = w_1 B(R) + w_2 L(\beta)$$
    
-   Since all components are bounded, $V$ is bounded within feasible domain. □
+   Since all components are bounded, $V$ is bounded within feasible domain.
 
 ### 3.3 Ultimate Boundedness Proof
 
@@ -145,7 +145,7 @@ $$\dot{V} \leq -c_2 \frac{\alpha^2}{R^2} + \varepsilon$$
 
 where $\varepsilon > 0$ is a small error term. When $\alpha$ is sufficiently large ($R$ sufficiently small), $\dot{V} < 0$, ensuring system exits threat region.
 
-Therefore, there exists an ultimate bounded set $\{R \geq R_{\text{safe}} + \delta\}$ that the system eventually enters and remains within. □
+Therefore, there exists an ultimate bounded set $\{R \geq R_{\text{safe}} + \delta\}$ that the system eventually enters and remains within.
 
 ## 4. Discrete Time Considerations
 
