@@ -78,19 +78,13 @@ where $u_k$ is rate-of-turn (deg/s) saturated by $u_{\text{max}}$, and $v_k$ the
 Let $\dot{\theta}_k$ be the absolute bearing rate. Define an urgency gain $g_k = \alpha_k^2$. With thresholding $|\dot{\theta}_k|\,\Delta t \le \alpha_k$:
 
 - If approximately CBDR ($|\dot{\theta}_k|$ very small), turn away from the contact's relative side:
-  $$
-    u_k = \begin{cases}
-    -u_{\text{max}}, & \beta_k < 0 \quad (\text{contact on port})\\
-    +u_{\text{max}}, & \beta_k \ge 0 \quad (\text{contact on starboard})
-    \end{cases}
-  $$
+  - If $\beta_k < 0$ (contact on port): $u_k = -u_{\text{max}}$
+  - If $\beta_k \ge 0$ (contact on starboard): $u_k = +u_{\text{max}}$
+
 - Else, accelerate separation using the sign of $\dot{\theta}_k$:
-  $$
-  u_k = \begin{cases}
-  -\text{sgn}(\dot{\theta}_k) \cdot g_k, & |\beta_k| < 90^\circ \\ 
-  +\text{sgn}(\dot{\theta}_k) \cdot g_k, & |\beta_k| \ge 90^\circ
-  \end{cases}
-  $$
+  - If $|\beta_k| < 90°$: $u_k = -\text{sgn}(\dot{\theta}_k) \cdot g_k$
+  - If $|\beta_k| \ge 90°$: $u_k = +\text{sgn}(\dot{\theta}_k) \cdot g_k$
+
 - If $\alpha_k < \alpha_{\text{nav}}$ (no threat), steer toward goal bearing $\beta^{\text{goal}}_k$: $u_k = \beta^{\text{goal}}_k$.
 
 ### Relative-bearing controller (CBDR by $\dot{\beta}$)
