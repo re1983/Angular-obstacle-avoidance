@@ -202,6 +202,11 @@ $RECYCLE.BIN/
 # Ignore generated simulation images (optional - uncomment if you don't want to track them)
 # *.png
 
+# Lyapunov analysis generated results
+lyapunov_analysis/analysis_results/
+lyapunov_analysis/*.png
+lyapunov_analysis/*.json
+
 # Ignore backup files
 *.bak
 *.backup
