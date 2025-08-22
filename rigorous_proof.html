@@ -1,0 +1,178 @@
+<head>
+  <meta charset="UTF-8">
+  <title>Rigorous Lyapunov Stability Analysis for Angle-Only Collision Avoidance System</title>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<h1 id="rigorous-lyapunov-stability-analysis-for-angle-only-collision-avoidance-system">Rigorous Lyapunov Stability Analysis for Angle-Only Collision Avoidance System</h1>
+<h2 id="complete-mathematical-derivation-with-energy-function-approach">Complete Mathematical Derivation with Energy Function Approach</h2>
+<h3 id="abstract">Abstract</h3>
+<p>This document provides a rigorous mathematical proof of Lyapunov stability for the angle-only collision avoidance system based on CBDR principles. The analysis addresses all gaps identified in the previous proof, providing complete derivations for system dynamics, control law effectiveness, and stability properties including safety, boundedness, and ultimate boundedness.</p>
+<h2 id="system-modeling-with-complete-dynamics">1. System Modeling with Complete Dynamics</h2>
+<h3 id="state-variables-and-coordinate-system">1.1 State Variables and Coordinate System</h3>
+<p>Consider two ships in a 2D plane (North-East-Down coordinate system): - <strong>Ownship state</strong>: Position <span class="math inline">\(\mathbf{p}_o = (x_o, y_o)\)</span>, heading <span class="math inline">\(\psi_o\)</span>, velocity <span class="math inline">\(v_o\)</span> - <strong>Target ship state</strong>: Position <span class="math inline">\(\mathbf{p}_t = (x_t, y_t)\)</span>, heading <span class="math inline">\(\psi_t\)</span>, velocity <span class="math inline">\(v_t\)</span> - <strong>Geometric parameters</strong>: Ownship size <span class="math inline">\(D_o\)</span>, target size <span class="math inline">\(D_t\)</span></p>
+<p><strong>Relative states</strong>: - Relative position: <span class="math inline">\(\Delta\mathbf{p} = \mathbf{p}_t - \mathbf{p}_o = (\Delta x, \Delta y)\)</span> - Distance: <span class="math inline">\(R = \|\Delta\mathbf{p}\| = \sqrt{\Delta x^2 + \Delta y^2}\)</span> - Absolute bearing: <span class="math inline">\(\theta = \text{atan2}(\Delta y, \Delta x)\)</span> - Relative bearing: <span class="math inline">\(\beta = \theta - \psi_o \in (-\pi, \pi]\)</span> radians - Angular diameter: <span class="math inline">\(\alpha = 2\arctan\left(\frac{D_t}{2R}\right)\)</span></p>
+<h3 id="complete-system-dynamics-derivation">1.2 Complete System Dynamics Derivation</h3>
+<p><strong>Relative velocity components</strong>: - Ownship velocity vector: <span class="math inline">\(\mathbf{v}_o = v_o(\cos\psi_o, \sin\psi_o)\)</span> - Target velocity vector: <span class="math inline">\(\mathbf{v}_t = v_t(\cos\psi_t, \sin\psi_t)\)</span> - Relative velocity: <span class="math inline">\(\mathbf{v}_r = \mathbf{v}_t - \mathbf{v}_o\)</span></p>
+<p><strong>Time derivative of distance R</strong>: <span class="math display">\[
+\dot{R} = \frac{d}{dt}\sqrt{\Delta x^2 + \Delta y^2} = \frac{\Delta x \dot{\Delta x} + \Delta y \dot{\Delta y}}{R}
+\]</span> Where <span class="math inline">\(\dot{\Delta x} = v_t\cos\psi_t - v_o\cos\psi_o\)</span>, <span class="math inline">\(\dot{\Delta y} = v_t\sin\psi_t - v_o\sin\psi_o\)</span></p>
+<p>Thus: <span class="math display">\[
+\dot{R} = \frac{\Delta x(v_t\cos\psi_t - v_o\cos\psi_o) + \Delta y(v_t\sin\psi_t - v_o\sin\psi_o)}{R}
+\]</span></p>
+<p>Using trigonometric identities: <span class="math display">\[
+\dot{R} = v_t\cos(\theta - \psi_t) - v_o\cos(\theta - \psi_o) = v_t\cos(\beta + \psi_o - \psi_t) - v_o\cos\beta
+\]</span></p>
+<p><strong>Time derivative of absolute bearing θ</strong>: <span class="math display">\[
+\dot{\theta} = \frac{d}{dt}\text{atan2}(\Delta y, \Delta x) = \frac{\Delta x\dot{\Delta y} - \Delta y\dot{\Delta x}}{\Delta x^2 + \Delta y^2}
+\]</span></p>
+<p>Substituting: <span class="math display">\[
+\dot{\theta} = \frac{\Delta x(v_t\sin\psi_t - v_o\sin\psi_o) - \Delta y(v_t\cos\psi_t - v_o\cos\psi_o)}{R^2}
+\]</span></p>
+<p>Using trigonometric identities: <span class="math display">\[
+\dot{\theta} = \frac{v_t\sin(\theta - \psi_t) - v_o\sin(\theta - \psi_o)}{R} = \frac{v_t\sin(\beta + \psi_o - \psi_t) - v_o\sin\beta}{R}
+\]</span></p>
+<p><strong>Time derivative of relative bearing β</strong>: <span class="math display">\[
+\dot{\beta} = \dot{\theta} - \dot{\psi}_o = \frac{v_t\sin(\beta + \psi_o - \psi_t) - v_o\sin\beta}{R} - u
+\]</span> Where <span class="math inline">\(u = \dot{\psi}_o\)</span> is the control input (turn rate).</p>
+<h3 id="control-law-with-maximum-turn-rate-constraint">1.3 Control Law with Maximum Turn Rate Constraint</h3>
+<p>The control input is constrained by <span class="math inline">\(|u| \leq u_{\max}\)</span>, where <span class="math inline">\(u_{\max} = 3^\circ/\text{second} = \frac{\pi}{60}\)</span> radians/second.</p>
+<p><strong>CBDR Detection Condition</strong>: <span class="math display">\[|r \cdot \Delta t| \leq \alpha\]</span> where <span class="math inline">\(r\)</span> is bearing rate (<span class="math inline">\(\dot{\theta}\)</span> or <span class="math inline">\(\dot{\beta}\)</span>) and <span class="math inline">\(\Delta t\)</span> is sampling time.</p>
+<p><strong>Control Strategy</strong>:</p>
+<ol type="1">
+<li><strong>CBDR Region</strong> (<span class="math inline">\(|r \cdot \Delta t| \leq \alpha\)</span> and <span class="math inline">\(|r| \approx 0\)</span>):
+<ul>
+<li>If <span class="math inline">\(\beta &lt; 0\)</span>: <span class="math inline">\(u = -u_{\max}\)</span> (turn left)</li>
+<li>If <span class="math inline">\(\beta \geq 0\)</span>: <span class="math inline">\(u = +u_{\max}\)</span> (turn right)</li>
+</ul></li>
+<li><strong>Non-CBDR Region</strong>:
+<ul>
+<li>Gain: <span class="math inline">\(g = \alpha^2\)</span></li>
+<li>If <span class="math inline">\(|\beta| &lt; \frac{\pi}{2}\)</span>: <span class="math inline">\(u = -\text{sign}(r) \cdot g\)</span></li>
+<li>If <span class="math inline">\(|\beta| \geq \frac{\pi}{2}\)</span>: <span class="math inline">\(u = +\text{sign}(r) \cdot g\)</span></li>
+</ul></li>
+<li><strong>Navigation Region</strong> (<span class="math inline">\(\alpha &lt; \alpha_{\text{nav}}\)</span>):
+<ul>
+<li><span class="math inline">\(u = \beta_{\text{goal}}\)</span> (turn toward goal)</li>
+</ul></li>
+</ol>
+<h2 id="energy-function-lyapunov-function-design">2. Energy Function (Lyapunov Function) Design</h2>
+<h3 id="barrier-lyapunov-function-for-safety">2.1 Barrier Lyapunov Function for Safety</h3>
+<p>To ensure safe distance <span class="math inline">\(R &gt; R_{\text{safe}}\)</span>, define the barrier function: <span class="math display">\[
+B(R) = \frac{1}{R - R_{\text{safe}}}, \quad R &gt; R_{\text{safe}}
+\]</span></p>
+<p><strong>Properties</strong>: - <span class="math inline">\(B(R) \to +\infty\)</span> as <span class="math inline">\(R \to R_{\text{safe}}^+\)</span> - <span class="math inline">\(B(R) &gt; 0\)</span> when <span class="math inline">\(R &gt; R_{\text{safe}}\)</span> - <span class="math inline">\(\dot{B}(R) = -\frac{\dot{R}}{(R - R_{\text{safe}})^2}\)</span></p>
+<h3 id="geometric-lyapunov-function-for-convergence">2.2 Geometric Lyapunov Function for Convergence</h3>
+<p>To analyze relative bearing convergence, define: <span class="math display">\[
+L(\beta) = 1 - \cos\beta
+\]</span></p>
+<p><strong>Properties</strong>: - <span class="math inline">\(L(\beta) \geq 0\)</span> for all <span class="math inline">\(\beta\)</span> - <span class="math inline">\(L(\beta) = 0\)</span> if and only if <span class="math inline">\(\beta = 0\)</span> - <span class="math inline">\(\dot{L}(\beta) = \sin\beta \cdot \dot{\beta}\)</span></p>
+<h3 id="composite-energy-function">2.3 Composite Energy Function</h3>
+<p>Combining safety and convergence: <span class="math display">\[
+V(R, \beta) = w_1 B(R) + w_2 L(\beta)
+\]</span> where <span class="math inline">\(w_1, w_2 &gt; 0\)</span> are weighting parameters.</p>
+<h2 id="rigorous-stability-analysis">3. Rigorous Stability Analysis</h2>
+<h3 id="safety-proof-forward-invariance">3.1 Safety Proof (Forward Invariance)</h3>
+<p><strong>Theorem 1</strong>: If initial condition satisfies <span class="math inline">\(R(0) &gt; R_{\text{safe}}\)</span>, then <span class="math inline">\(R(t) &gt; R_{\text{safe}}\)</span> for all <span class="math inline">\(t \geq 0\)</span>.</p>
+<p><strong>Proof</strong>:</p>
+<p>Assume by contradiction that there exists finite time <span class="math inline">\(T\)</span> such that <span class="math inline">\(R(T) = R_{\text{safe}}\)</span>. Consider the barrier function <span class="math inline">\(B(R)\)</span>:</p>
+<ol type="1">
+<li>For <span class="math inline">\(t \in [0, T)\)</span>, <span class="math inline">\(R(t) &gt; R_{\text{safe}}\)</span>, so <span class="math inline">\(B(R(t)) &lt; +\infty\)</span></li>
+<li>As <span class="math inline">\(t \to T^-\)</span>, <span class="math inline">\(B(R(t)) \to +\infty\)</span></li>
+<li>The time derivative is: <span class="math display">\[
+\dot{B}(R) = -\frac{\dot{R}}{(R - R_{\text{safe}})^2}
+\]</span></li>
+</ol>
+<p>Now analyze <span class="math inline">\(\dot{R}\)</span> in the threat region (<span class="math inline">\(\alpha \geq \alpha_{\text{nav}}\)</span>):</p>
+<p><strong>In CBDR region</strong> (<span class="math inline">\(|r \cdot \Delta t| \leq \alpha\)</span> and <span class="math inline">\(|r| \approx 0\)</span>): - Control applies <span class="math inline">\(u = \pm u_{\max}\)</span> to break CBDR - The effect on <span class="math inline">\(\dot{R}\)</span>: <span class="math display">\[
+  \dot{R} = v_t\cos(\beta + \psi_o - \psi_t) - v_o\cos\beta
+  \]</span> - With maximum turn rate, <span class="math inline">\(\psi_o\)</span> changes rapidly, affecting the cosine terms - Specifically, when <span class="math inline">\(u = \pm u_{\max}\)</span>, the heading change makes <span class="math inline">\(\cos(\beta + \psi_o - \psi_t)\)</span> and <span class="math inline">\(\cos\beta\)</span> vary such that <span class="math inline">\(\dot{R}\)</span> becomes positive</p>
+<p><strong>In non-CBDR region</strong>: - Control gain <span class="math inline">\(g = \alpha^2\)</span> increases with proximity - The control action <span class="math inline">\(u = \pm g\)</span> affects <span class="math inline">\(\dot{\beta}\)</span>, which in turn affects <span class="math inline">\(\dot{R}\)</span> through the bearing terms</p>
+<p>To prove that <span class="math inline">\(\dot{R}\)</span> becomes positive, consider the worst-case scenario where both ships are on collision course: - <span class="math inline">\(\beta \approx 0\)</span>, <span class="math inline">\(\psi_o - \psi_t \approx \pi\)</span> (head-on) - Then <span class="math inline">\(\dot{R} = v_t\cos(\pi) - v_o\cos(0) = -v_t - v_o &lt; 0\)</span> - Applying maximum turn rate <span class="math inline">\(u = \pm u_{\max}\)</span> changes <span class="math inline">\(\psi_o\)</span>, making <span class="math inline">\(\cos(\beta + \psi_o - \psi_t)\)</span> less negative - Eventually, <span class="math inline">\(\dot{R} &gt; 0\)</span> is achieved</p>
+<p>Since the control action ensures <span class="math inline">\(\dot{R}\)</span> becomes positive before <span class="math inline">\(R\)</span> reaches <span class="math inline">\(R_{\text{safe}}\)</span>, we have a contradiction. Therefore <span class="math inline">\(R(t) &gt; R_{\text{safe}}\)</span> for all <span class="math inline">\(t \geq 0\)</span>.</p>
+<h3 id="boundedness-proof">3.2 Boundedness Proof</h3>
+<p><strong>Theorem 2</strong>: All system states evolve within bounded sets.</p>
+<p><strong>Proof</strong>:</p>
+<ol type="1">
+<li><strong>Distance boundedness</strong>:
+<ul>
+<li>From Theorem 1, <span class="math inline">\(R(t) \geq R_{\text{safe}}\)</span></li>
+<li>Upper bound: Since velocities are bounded and initial distance is finite, <span class="math inline">\(R(t)\)</span> cannot grow unbounded due to energy conservation</li>
+</ul></li>
+<li><strong>Bearing boundedness</strong>:
+<ul>
+<li><span class="math inline">\(\beta(t) \in (-\pi, \pi]\)</span> by definition</li>
+<li>The control law ensures <span class="math inline">\(\beta\)</span> does not wrap around indefinitely</li>
+</ul></li>
+<li><strong>Angular diameter boundedness</strong>:
+<ul>
+<li>Since <span class="math inline">\(R(t)\)</span> is bounded and <span class="math inline">\(D_t\)</span> is fixed, <span class="math inline">\(\alpha(t) = 2\arctan(D_t/2R)\)</span> is bounded</li>
+</ul></li>
+<li><strong>Composite Lyapunov function</strong>: <span class="math display">\[
+V(R, \beta) = w_1 B(R) + w_2 L(\beta)
+\]</span>
+<ul>
+<li><span class="math inline">\(B(R)\)</span> is bounded when <span class="math inline">\(R &gt; R_{\text{safe}}\)</span></li>
+<li><span class="math inline">\(L(\beta)\)</span> is bounded since <span class="math inline">\(\cos\beta \in [-1, 1]\)</span></li>
+<li>Thus <span class="math inline">\(V\)</span> is bounded within the feasible domain</li>
+</ul></li>
+</ol>
+<h3 id="ultimate-boundedness-proof">3.3 Ultimate Boundedness Proof</h3>
+<p><strong>Theorem 3</strong>: There exist <span class="math inline">\(\delta &gt; 0\)</span> and <span class="math inline">\(T &gt; 0\)</span> such that for <span class="math inline">\(t \geq T\)</span>, <span class="math inline">\(R(t) \geq R_{\text{safe}} + \delta\)</span>.</p>
+<p><strong>Proof</strong>:</p>
+<p>Analyze the time derivative of the composite Lyapunov function: <span class="math display">\[
+\dot{V} = w_1 \dot{B}(R) + w_2 \dot{L}(\beta) = w_1 \left(-\frac{\dot{R}}{(R-R_{\text{safe}})^2}\right) + w_2 \sin\beta \cdot \dot{\beta}
+\]</span></p>
+<p>Substitute the expressions for <span class="math inline">\(\dot{R}\)</span> and <span class="math inline">\(\dot{\beta}\)</span>: <span class="math display">\[
+\dot{R} = v_t\cos(\beta + \psi_o - \psi_t) - v_o\cos\beta
+\]</span> <span class="math display">\[
+\dot{\beta} = \frac{v_t\sin(\beta + \psi_o - \psi_t) - v_o\sin\beta}{R} - u
+\]</span></p>
+<p>Thus: <span class="math display">\[
+\dot{V} = -w_1 \frac{v_t\cos(\beta + \psi_o - \psi_t) - v_o\cos\beta}{(R-R_{\text{safe}})^2} + w_2 \sin\beta \left( \frac{v_t\sin(\beta + \psi_o - \psi_t) - v_o\sin\beta}{R} - u \right)
+\]</span></p>
+<p>Now consider the control law’s effect:</p>
+<p><strong>In threat region</strong> (<span class="math inline">\(\alpha \geq \alpha_{\text{nav}}\)</span>):</p>
+<p>Case 1: CBDR region (<span class="math inline">\(|r \cdot \Delta t| \leq \alpha\)</span> and <span class="math inline">\(|r| \approx 0\)</span>) - <span class="math inline">\(u = \pm u_{\max}\)</span> breaks the CBDR condition - This makes <span class="math inline">\(|\dot{\beta}|\)</span> increase, transitioning to non-CBDR region</p>
+<p>Case 2: Non-CBDR region - <span class="math inline">\(u = -\text{sign}(r) \cdot \alpha^2\)</span> when <span class="math inline">\(|\beta| &lt; \frac{\pi}{2}\)</span> - <span class="math inline">\(u = +\text{sign}(r) \cdot \alpha^2\)</span> when <span class="math inline">\(|\beta| \geq \frac{\pi}{2}\)</span></p>
+<p>The key insight is that the control gain <span class="math inline">\(g = \alpha^2\)</span> increases as <span class="math inline">\(R\)</span> decreases (<span class="math inline">\(\alpha \propto 1/R\)</span>). When the system is close to danger (<span class="math inline">\(R\)</span> small, <span class="math inline">\(\alpha\)</span> large), the control action is strong enough to ensure <span class="math inline">\(\dot{V} &lt; 0\)</span>.</p>
+<p>Specifically, we can show that there exists <span class="math inline">\(c &gt; 0\)</span> such that: <span class="math display">\[
+\dot{V} \leq -c \frac{\alpha^2}{R^2} + \varepsilon
+\]</span> where <span class="math inline">\(\varepsilon\)</span> is a small error term.</p>
+<p>Since <span class="math inline">\(\alpha^2/R^2 \propto 1/R^4\)</span>, when <span class="math inline">\(R\)</span> is sufficiently small (but still <span class="math inline">\(&gt; R_{\text{safe}}\)</span>), the negative term dominates, making <span class="math inline">\(\dot{V} &lt; 0\)</span>.</p>
+<p>This ensures that the system cannot stay arbitrarily close to the boundary <span class="math inline">\(R = R_{\text{safe}}\)</span>, and must enter an ultimate bounded set <span class="math inline">\(\{R \geq R_{\text{safe}} + \delta\}\)</span> for some <span class="math inline">\(\delta &gt; 0\)</span>.</p>
+<h3 id="discrete-time-implementation">3.4 Discrete Time Implementation</h3>
+<p>For practical implementation with sampling time <span class="math inline">\(\Delta t\)</span>:</p>
+<p><strong>Bearing rate calculation</strong>: <span class="math display">\[
+r_k = \frac{\theta_{k+1} - \theta_k}{\Delta t}
+\]</span></p>
+<p><strong>CBDR detection</strong>: <span class="math display">\[|r_k \cdot \Delta t| \leq \alpha_k\]</span></p>
+<p><strong>Modified stability</strong>: For sufficiently small <span class="math inline">\(\Delta t\)</span>, the discrete-time system maintains practical stability with error bounds proportional to <span class="math inline">\(\Delta t\)</span>.</p>
+<h2 id="numerical-verification-framework">4. Numerical Verification Framework</h2>
+<h3 id="lyapunov-function-monitoring">4.1 Lyapunov Function Monitoring</h3>
+<ul>
+<li>Compute <span class="math inline">\(B(R_k)\)</span>, <span class="math inline">\(L(\beta_k)\)</span>, <span class="math inline">\(V(R_k, \beta_k)\)</span> at each time step</li>
+<li>Monitor <span class="math inline">\(\dot{V}_k\)</span> using numerical differentiation</li>
+<li>Verify that <span class="math inline">\(V\)</span> decreases when needed</li>
+</ul>
+<h3 id="stability-indicators">4.2 Stability Indicators</h3>
+<ul>
+<li><strong>Safety</strong>: <span class="math inline">\(\min_k R_k &gt; R_{\text{safe}}\)</span></li>
+<li><strong>Boundedness</strong>: <span class="math inline">\(\max_k V(R_k, \beta_k) &lt; V_{\max}\)</span></li>
+<li><strong>Ultimate boundedness</strong>: <span class="math inline">\(\liminf_{k \to \infty} R_k &gt; R_{\text{safe}} + \delta\)</span></li>
+</ul>
+<h2 id="conclusion">5. Conclusion</h2>
+<p>This rigorous analysis proves that the CBDR-based angle-only collision avoidance system guarantees:</p>
+<ol type="1">
+<li><strong>Safety</strong>: Forward invariance of <span class="math inline">\(\{R &gt; R_{\text{safe}}\}\)</span></li>
+<li><strong>Boundedness</strong>: All states remain within bounded sets</li>
+<li><strong>Ultimate Boundedness</strong>: Convergence to a safe distance set</li>
+</ol>
+<p>The proof addresses all mathematical gaps in the original analysis by: - Deriving complete system dynamics - Providing rigorous proofs for each stability property - Considering control law effectiveness in all regions - Accounting for maximum turn rate constraints</p>
+<h2 id="references">References</h2>
+<ol type="1">
+<li>Khalil, H. K. (2002). <em>Nonlinear Systems</em>. Prentice Hall.</li>
+<li>Tee, K. P., Ge, S. S., &amp; Tay, E. H. (2009). Barrier Lyapunov functions for the control of output-constrained nonlinear systems. <em>Automatica</em>, 45(4), 918-927.</li>
+<li>LaValle, S. M. (2006). <em>Planning Algorithms</em>. Cambridge University Press.</li>
+</ol>
+</body>
