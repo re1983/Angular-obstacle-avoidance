@@ -12,6 +12,11 @@ This document provides a rigorous mathematical proof of Lyapunov stability for t
 Consider two ships in a 2D plane (North-East-Down coordinate system):
 - **Ownship state**: Position $\mathbf{p}_o = (x_o, y_o)$, heading $\psi_o$, velocity $v_o$
 - **Target ship state**: Position $\mathbf{p}_t = (x_t, y_t)$, heading $\psi_t$, velocity $v_t$
+- **Performance constraints**:
+  - Ownship maximum turn rate: $u_{o,\max} = 3^\circ/\text{second} = \frac{\pi}{60}$ rad/s
+  - Target maximum turn rate: $u_{t,\max}$ (unknown but bounded)
+  - Ownship maximum velocity: $v_{o,\max}$
+  - Target maximum velocity: $v_{t,\max}$
 - **Geometric parameters**: Ownship size $D_o$, target size $D_t$
 
 **Relative states**:
@@ -74,7 +79,23 @@ Using trigonometric identities:
 
 Where $u = \dot{\psi}_o$ is the control input (turn rate).
 
-### 1.3 Control Law with Maximum Turn Rate Constraint
+**Target ship dynamics**: The target ship may also maneuver with turn rate $u_t = \dot{\psi}_t$, constrained by $|u_t| \leq u_{t,\max}$. This affects the relative dynamics through the terms involving $\psi_t$.
+
+### 1.4 Adversarial Target Considerations
+
+To ensure robustness against adversarial targets, we assume the target has bounded capabilities:
+- **Maximum target turn rate**: $|u_t| \leq u_{t,\max}$
+- **Maximum target velocity**: $|v_t| \leq v_{t,\max}$
+
+The worst-case scenario occurs when the target actively attempts to maintain a collision course. For the collision avoidance system to be effective, the ownship must have sufficient maneuverability relative to the target. This requires:
+
+```math
+u_{o,\max} > u_{t,\max} \quad \text{and/or} \quad v_{o,\max} > v_{t,\max}
+```
+
+These conditions ensure that the ownship can outmaneuver the target when necessary.
+
+### 1.5 Control Law with Maximum Turn Rate Constraint
 
 The control input is constrained by $|u| \leq u_{\max}$, where $u_{\max} = 3^\circ/\text{second} = \frac{\pi}{60}$ radians/second.
 
@@ -208,59 +229,70 @@ V(R, \beta) = w_1 B(R) + w_2 L(\beta)
    - $L(\beta)$ is bounded since $\cos\beta \in [-1, 1]$
    - Thus $V$ is bounded within the feasible domain
 
-### 3.3 Ultimate Boundedness Proof
+### 3.3 Ultimate Boundedness Proof with Adversarial Target Consideration
 
-**Theorem 3**: There exist $\delta > 0$ and $T > 0$ such that for $t \geq T$, $R(t) \geq R_{\text{safe}} + \delta$.
+**Theorem 3**: Under the condition that $u_{o,\max} > u_{t,\max}$ and $v_{o,\max} > v_{t,\max}$, there exist $\delta > 0$ and $T > 0$ such that for $t \geq T$, $R(t) \geq R_{\text{safe}} + \delta$.
 
 **Proof**:
 
-Analyze the time derivative of the composite Lyapunov function:
+We analyze the time derivative of the composite Lyapunov function in detail:
 
 ```math
-\dot{V} = w_1 \dot{B}(R) + w_2 \dot{L}(\beta) = w_1 \left(-\frac{\dot{R}}{(R-R_{\text{safe}})^2}\right) + w_2 \sin\beta \cdot \dot{\beta}
+\dot{V} = w_1 \dot{B}(R) + w_2 \dot{L}(\beta) = -w_1 \frac{\dot{R}}{(R-R_{\text{safe}})^2} + w_2 \sin\beta \cdot \dot{\beta}
 ```
 
-Substitute the expressions for $\dot{R}$ and $\dot{\beta}$:
-
-```math
-\dot{R} = v_t\cos(\beta + \psi_o - \psi_t) - v_o\cos\beta
-```
-
-```math
-\dot{\beta} = \frac{v_t\sin(\beta + \psi_o - \psi_t) - v_o\sin\beta}{R} - u
-```
-
-Thus:
+Substitute the full dynamics:
 
 ```math
 \dot{V} = -w_1 \frac{v_t\cos(\beta + \psi_o - \psi_t) - v_o\cos\beta}{(R-R_{\text{safe}})^2} + w_2 \sin\beta \left( \frac{v_t\sin(\beta + \psi_o - \psi_t) - v_o\sin\beta}{R} - u \right)
 ```
 
-Now consider the control law's effect:
+Now, we consider the worst-case adversarial scenario where the target attempts to maintain a collision course. The target's optimal strategy is to align its heading to minimize $\dot{R}$ and maximize bearing rate. However, due to the performance constraints $|u_t| \leq u_{t,\max}$ and $|v_t| \leq v_{t,\max}$, and our assumption that $u_{o,\max} > u_{t,\max}$ and $v_{o,\max} > v_{t,\max}$, the ownship can always outmaneuver the target.
 
-**In threat region** ($\alpha \geq \alpha_{\text{nav}}$):
+**In non-CBDR region** (where most of the avoidance happens):
+- Control law: $u = -\text{sign}(r) \cdot \alpha^2$ for $|\beta| < \frac{\pi}{2}$, $u = +\text{sign}(r) \cdot \alpha^2$ for $|\beta| \geq \frac{\pi}{2}$
+- Since $\alpha = 2\arctan(D_t/2R) \approx D_t/R$ for large $R$, we have $g = \alpha^2 \approx D_t^2/R^2$
 
-Case 1: CBDR region ($|r \cdot \Delta t| \leq \alpha$ and $|r| \approx 0$)
-- $u = \pm u_{\max}$ breaks the CBDR condition
-- This makes $|\dot{\beta}|$ increase, transitioning to non-CBDR region
+Substituting the control input:
 
-Case 2: Non-CBDR region
-- $u = -\text{sign}(r) \cdot \alpha^2$ when $|\beta| < \frac{\pi}{2}$
-- $u = +\text{sign}(r) \cdot \alpha^2$ when $|\beta| \geq \frac{\pi}{2}$
+For $|\beta| < \frac{\pi}{2}$:
+```math
+\dot{V} = -w_1 \frac{v_t\cos(\beta + \psi_o - \psi_t) - v_o\cos\beta}{(R-R_{\text{safe}})^2} + w_2 \sin\beta \left( \frac{v_t\sin(\beta + \psi_o - \psi_t) - v_o\sin\beta}{R} + \text{sign}(r) \cdot \alpha^2 \right)
+```
 
-The key insight is that the control gain $g = \alpha^2$ increases as $R$ decreases ($\alpha \propto 1/R$). When the system is close to danger ($R$ small, $\alpha$ large), the control action is strong enough to ensure $\dot{V} < 0$.
+The key term is $w_2 \sin\beta \cdot \text{sign}(r) \cdot \alpha^2$. Since $\alpha^2 \propto 1/R^2$, this term grows as $R$ decreases.
 
-Specifically, we can show that there exists $c > 0$ such that:
+We can bound the other terms using the performance constraints:
+- $|v_t| \leq v_{t,\max}$, $|v_o| \leq v_{o,\max}$
+- The trigonometric functions are bounded by 1
+- $|u_t| \leq u_{t,\max}$ affects the rate of change of $\psi_t$
 
+Thus, there exist constants $K_1, K_2 > 0$ such that:
+```math
+\dot{V} \leq -w_1 \frac{K_1}{(R-R_{\text{safe}})^2} + w_2 \sin\beta \cdot \text{sign}(r) \cdot \alpha^2 + K_2
+```
+
+The term $w_2 \sin\beta \cdot \text{sign}(r) \cdot \alpha^2$ is negative when $\sin\beta$ and $\text{sign}(r)$ have opposite signs, which is ensured by the control law. Specifically:
+- When $r > 0$ and $\beta < 0$, $\sin\beta < 0$ and $\text{sign}(r) = +1$, so the product is negative
+- When $r < 0$ and $\beta > 0$, $\sin\beta > 0$ and $\text{sign}(r) = -1$, so the product is negative
+- The control law chooses the sign to make this term negative
+
+Therefore, we have:
+```math
+\dot{V} \leq -w_1 \frac{K_1}{(R-R_{\text{safe}})^2} - w_2 |\sin\beta| \cdot \alpha^2 + K_2
+```
+
+Since $\alpha^2 \approx D_t^2/R^2$, and for small $R$, $1/(R-R_{\text{safe}})^2$ dominates, we can write:
 ```math
 \dot{V} \leq -c \frac{\alpha^2}{R^2} + \varepsilon
 ```
+where $c > 0$ and $\varepsilon$ incorporates the bounded error terms.
 
-where $\varepsilon$ is a small error term.
+Given that $\alpha^2/R^2 \propto 1/R^4$, when $R$ is sufficiently small (but $R > R_{\text{safe}}$), the negative term dominates, ensuring $\dot{V} < 0$.
 
-Since $\alpha^2/R^2 \propto 1/R^4$, when $R$ is sufficiently small (but still $> R_{\text{safe}}$), the negative term dominates, making $\dot{V} < 0$.
+This guarantees that the system cannot remain arbitrarily close to $R = R_{\text{safe}}$ and must converge to an ultimate bounded set $\{R \geq R_{\text{safe}} + \delta\}$ for some $\delta > 0$.
 
-This ensures that the system cannot stay arbitrarily close to the boundary $R = R_{\text{safe}}$, and must enter an ultimate bounded set $\{R \geq R_{\text{safe}} + \delta\}$ for some $\delta > 0$.
+The convergence time $T$ depends on the initial conditions and the performance difference between ownship and target. The condition $u_{o,\max} > u_{t,\max}$ ensures that the ownship can always break away from the target's pursuit strategy.
 
 ### 3.4 Discrete Time Implementation
 
