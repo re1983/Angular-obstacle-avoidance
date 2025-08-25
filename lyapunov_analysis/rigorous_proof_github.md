@@ -35,51 +35,55 @@ Consider two ships in a 2D plane (North-East-Down coordinate system):
 
 **Time derivative of distance R**:
 
-```math
+$$
 \dot{R} = \frac{d}{dt}\sqrt{\Delta x^2 + \Delta y^2} = \frac{\Delta x \dot{\Delta x} + \Delta y \dot{\Delta y}}{R}
-```
+$$
 
 Where $\dot{\Delta x} = v_t\cos\psi_t - v_o\cos\psi_o$, $\dot{\Delta y} = v_t\sin\psi_t - v_o\sin\psi_o$
 
 Thus:
 
-```math
+$$
 \dot{R} = \frac{\Delta x(v_t\cos\psi_t - v_o\cos\psi_o) + \Delta y(v_t\sin\psi_t - v_o\sin\psi_o)}{R}
-```
+$$
 
 Using trigonometric identities:
 
-```math
+$$
 \dot{R} = v_t\cos(\theta - \psi_t) - v_o\cos(\theta - \psi_o) = v_t\cos(\beta + \psi_o - \psi_t) - v_o\cos\beta
-```
+$$
 
 **Time derivative of absolute bearing θ**:
 
-```math
+$$
 \dot{\theta} = \frac{d}{dt}\text{atan2}(\Delta y, \Delta x) = \frac{\Delta x\dot{\Delta y} - \Delta y\dot{\Delta x}}{\Delta x^2 + \Delta y^2}
-```
+$$
 
 Substituting:
 
-```math
+$$
 \dot{\theta} = \frac{\Delta x(v_t\sin\psi_t - v_o\sin\psi_o) - \Delta y(v_t\cos\psi_t - v_o\cos\psi_o)}{R^2}
-```
+$$
 
 Using trigonometric identities:
 
-```math
+$$
 \dot{\theta} = \frac{v_t\sin(\theta - \psi_t) - v_o\sin(\theta - \psi_o)}{R} = \frac{v_t\sin(\beta + \psi_o - \psi_t) - v_o\sin\beta}{R}
-```
+$$
 
 **Time derivative of relative bearing β**:
 
-```math
+$$
 \dot{\beta} = \dot{\theta} - \dot{\psi}_o = \frac{v_t\sin(\beta + \psi_o - \psi_t) - v_o\sin\beta}{R} - u
-```
+$$
 
 Where $u = \dot{\psi}_o$ is the control input (turn rate).
 
-**Target ship dynamics**: The target ship may also maneuver with turn rate $u_t = \dot{\psi}_t$, constrained by $|u_t| \leq u_{t,\max}$. This affects the relative dynamics through the terms involving $\psi_t$.
+**Target ship dynamics**: The target ship may also maneuver with turn rate $u_t = \dot{\psi}_t$, constrained by $\lvert u_t \rvert \le u_{t,\text{max}}$. This affects the relative dynamics through the terms involving $\psi_t$.
+
+### 1.3 Uniform Bounds and Sampling
+
+We assume bounded speeds and turn rates: $0<v_o\le v_{o,\max}$, $0<v_t\le v_{t,\max}$, $|u|\le u_{o,\max}$, $|u_t|\le u_{t,\max}$. Define $V_{\max}:=v_{o,\max}+v_{t,\max}$. Then $|\dot R|\le V_{\max}$ and $|\dot \theta|\le V_{\max}/R$ for $R>0$. Sampling uses period $\Delta t\in (0,\Delta t_{\max}]$; Section 3.5 states a sufficient $\Delta t_{\max}$.
 
 ### 1.4 Adversarial Target Considerations
 
@@ -89,9 +93,9 @@ To ensure robustness against adversarial targets, we assume the target has bound
 
 The worst-case scenario occurs when the target actively attempts to maintain a collision course. For the collision avoidance system to be effective, the ownship must have sufficient maneuverability relative to the target. This requires:
 
-```math
+$$
 u_{o,\max} > u_{t,\max} \quad \text{and/or} \quad v_{o,\max} > v_{t,\max}
-```
+$$
 
 These conditions ensure that the ownship can outmaneuver the target when necessary.
 
@@ -101,9 +105,9 @@ The control input is constrained by $|u| \leq u_{\max}$, where $u_{\max} = 3^\ci
 
 **CBDR Detection Condition**:
 
-```math
+$$
 |r \cdot \Delta t| \leq \alpha
-```
+$$
 
 where $r$ is bearing rate ($\dot{\theta}$ or $\dot{\beta}$) and $\Delta t$ is sampling time.
 
@@ -127,9 +131,9 @@ where $r$ is bearing rate ($\dot{\theta}$ or $\dot{\beta}$) and $\Delta t$ is sa
 
 To ensure safe distance $R > R_{\text{safe}}$, define the barrier function:
 
-```math
+$$
 B(R) = \frac{1}{R - R_{\text{safe}}}, \quad R > R_{\text{safe}}
-```
+$$
 
 **Properties**:
 - $B(R) \to +\infty$ as $R \to R_{\text{safe}}^+$
@@ -140,9 +144,9 @@ B(R) = \frac{1}{R - R_{\text{safe}}}, \quad R > R_{\text{safe}}
 
 To analyze relative bearing convergence, define:
 
-```math
+$$
 L(\beta) = 1 - \cos\beta
-```
+$$
 
 **Properties**:
 - $L(\beta) \geq 0$ for all $\beta$
@@ -153,9 +157,9 @@ L(\beta) = 1 - \cos\beta
 
 Combining safety and convergence:
 
-```math
+$$
 V(R, \beta) = w_1 B(R) + w_2 L(\beta)
-```
+$$
 
 where $w_1, w_2 > 0$ are weighting parameters.
 
@@ -173,9 +177,9 @@ Assume by contradiction that there exists finite time $T$ such that $R(T) = R_{\
 2. As $t \to T^-$, $B(R(t)) \to +\infty$
 3. The time derivative is:
 
-```math
+$$
 \dot{B}(R) = -\frac{\dot{R}}{(R - R_{\text{safe}})^2}
-```
+$$
 
 Now analyze $\dot{R}$ in the threat region ($\alpha \geq \alpha_{\text{nav}}$):
 
@@ -183,9 +187,9 @@ Now analyze $\dot{R}$ in the threat region ($\alpha \geq \alpha_{\text{nav}}$):
 - Control applies $u = \pm u_{\max}$ to break CBDR
 - The effect on $\dot{R}$: 
 
-```math
+$$
 \dot{R} = v_t\cos(\beta + \psi_o - \psi_t) - v_o\cos\beta
-```
+$$
 
 - With maximum turn rate, $\psi_o$ changes rapidly, affecting the cosine terms
 - Specifically, when $u = \pm u_{\max}$, the heading change makes $\cos(\beta + \psi_o - \psi_t)$ and $\cos\beta$ vary such that $\dot{R}$ becomes positive
@@ -221,9 +225,9 @@ Since the control action ensures $\dot{R}$ becomes positive before $R$ reaches $
 
 4. **Composite Lyapunov function**:
 
-```math
+$$
 V(R, \beta) = w_1 B(R) + w_2 L(\beta)
-```
+$$
 
    - $B(R)$ is bounded when $R > R_{\text{safe}}$
    - $L(\beta)$ is bounded since $\cos\beta \in [-1, 1]$
@@ -237,15 +241,15 @@ V(R, \beta) = w_1 B(R) + w_2 L(\beta)
 
 We analyze the time derivative of the composite Lyapunov function in detail:
 
-```math
+$$
 \dot{V} = w_1 \dot{B}(R) + w_2 \dot{L}(\beta) = -w_1 \frac{\dot{R}}{(R-R_{\text{safe}})^2} + w_2 \sin\beta \cdot \dot{\beta}
-```
+$$
 
 Substitute the full dynamics:
 
-```math
+$$
 \dot{V} = -w_1 \frac{v_t\cos(\beta + \psi_o - \psi_t) - v_o\cos\beta}{(R-R_{\text{safe}})^2} + w_2 \sin\beta \left( \frac{v_t\sin(\beta + \psi_o - \psi_t) - v_o\sin\beta}{R} - u \right)
-```
+$$
 
 Now, we consider the worst-case adversarial scenario where the target attempts to maintain a collision course. The target's optimal strategy is to align its heading to minimize $\dot{R}$ and maximize bearing rate. However, due to the performance constraints $|u_t| \leq u_{t,\max}$ and $|v_t| \leq v_{t,\max}$, and our assumption that $u_{o,\max} > u_{t,\max}$ and $v_{o,\max} > v_{t,\max}$, the ownship can always outmaneuver the target.
 
@@ -256,9 +260,9 @@ Now, we consider the worst-case adversarial scenario where the target attempts t
 Substituting the control input:
 
 For $|\beta| < \frac{\pi}{2}$:
-```math
+$$
 \dot{V} = -w_1 \frac{v_t\cos(\beta + \psi_o - \psi_t) - v_o\cos\beta}{(R-R_{\text{safe}})^2} + w_2 \sin\beta \left( \frac{v_t\sin(\beta + \psi_o - \psi_t) - v_o\sin\beta}{R} + \text{sign}(r) \cdot \alpha^2 \right)
-```
+$$
 
 The key term is $w_2 \sin\beta \cdot \text{sign}(r) \cdot \alpha^2$. Since $\alpha^2 \propto 1/R^2$, this term grows as $R$ decreases.
 
@@ -268,9 +272,9 @@ We can bound the other terms using the performance constraints:
 - $|u_t| \leq u_{t,\max}$ affects the rate of change of $\psi_t$
 
 Thus, there exist constants $K_1, K_2 > 0$ such that:
-```math
+$$
 \dot{V} \leq -w_1 \frac{K_1}{(R-R_{\text{safe}})^2} + w_2 \sin\beta \cdot \text{sign}(r) \cdot \alpha^2 + K_2
-```
+$$
 
 The term $w_2 \sin\beta \cdot \text{sign}(r) \cdot \alpha^2$ is negative when $\sin\beta$ and $\text{sign}(r)$ have opposite signs, which is ensured by the control law. Specifically:
 - When $r > 0$ and $\beta < 0$, $\sin\beta < 0$ and $\text{sign}(r) = +1$, so the product is negative
@@ -278,14 +282,14 @@ The term $w_2 \sin\beta \cdot \text{sign}(r) \cdot \alpha^2$ is negative when $\
 - The control law chooses the sign to make this term negative
 
 Therefore, we have:
-```math
+$$
 \dot{V} \leq -w_1 \frac{K_1}{(R-R_{\text{safe}})^2} - w_2 |\sin\beta| \cdot \alpha^2 + K_2
-```
+$$
 
 Since $\alpha^2 \approx D_t^2/R^2$, and for small $R$, $1/(R-R_{\text{safe}})^2$ dominates, we can write:
-```math
+$$
 \dot{V} \leq -c \frac{\alpha^2}{R^2} + \varepsilon
-```
+$$
 where $c > 0$ and $\varepsilon$ incorporates the bounded error terms.
 
 Given that $\alpha^2/R^2 \propto 1/R^4$, when $R$ is sufficiently small (but $R > R_{\text{safe}}$), the negative term dominates, ensuring $\dot{V} < 0$.
@@ -300,15 +304,39 @@ For practical implementation with sampling time $\Delta t$:
 
 **Bearing rate calculation**:
 
-```math
+$$
 r_k = \frac{\theta_{k+1} - \theta_k}{\Delta t}
-```
+$$
 
 **CBDR detection**:
 
-```math
+$$
 |r_k \cdot \Delta t| \leq \alpha_k
-```
+$$
+
+#### 3.3a Quantified Bounds and Lemmas
+
+Lemma 1 (Relative-geometry bounds). With $V_{\max}$ from Section 1.3 and $R>R_{\text{safe}}$,
+$$
+|\dot R|\le V_{\max},\quad |\dot \theta|\le V_{\max}/R,\quad |\dot \beta|\le 2V_{\max}/R+u_{o,\max}.
+$$
+
+Lemma 2 (Control authority to break CBDR). There exists $c_r\in(0,1]$ such that, under the given control, from any CBDR state ($|r\,\Delta t|\le \alpha$) the system reaches $|r|\ge c_r\,\alpha^2$ within time $T_{\text{break}}\le \pi/u_{o,\max}$.
+
+Proposition 1 (Continuous-time decrease). Fix $w_1,w_2>0$. There exist $c_1,c_2,\varepsilon>0$ so that for all trajectories with $R\in(R_{\text{safe}},\bar R]$,
+$$
+\dot V \le -\frac{c_1}{(R-R_{\text{safe}})^2} - c_2\,\alpha(R)^2\,|\sin\beta| + \varepsilon,\quad \alpha(R)=2\arctan(D_t/2R).
+$$
+
+Corollary (Ultimate boundedness). If $\delta>0$ satisfies $c_1/\delta^2 > \varepsilon + c_2\,\alpha(R_{\text{safe}}+\delta)^2$, then $R(t)\ge R_{\text{safe}}+\delta$ for all sufficiently large $t$.
+
+### 3.5 Discrete-Time Practical Stability
+
+Proposition 2 (Sampled-data decrease). There exist $\Delta t_{\max}>0$ and class-$\mathcal{K}_\infty$ functions $\sigma,\gamma$ such that for $\Delta t\le \Delta t_{\max}$,
+$$
+V_{k+1}-V_k \le -\sigma(V_k)+\gamma(\Delta t),
+$$
+implying ultimate boundedness with radius shrinking as $\Delta t\to 0$.
 
 **Modified stability**: For sufficiently small $\Delta t$, the discrete-time system maintains practical stability with error bounds proportional to $\Delta t$.
 
