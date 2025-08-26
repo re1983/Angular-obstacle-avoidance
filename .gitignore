@@ -207,6 +207,25 @@ lyapunov_analysis/analysis_results/
 lyapunov_analysis/*.png
 lyapunov_analysis/*.json
 
+# LaTeX auxiliary files in lyapunov_analysis/latex/
+lyapunov_analysis/latex/*.aux
+lyapunov_analysis/latex/*.fdb_latexmk
+lyapunov_analysis/latex/*.fls
+lyapunov_analysis/latex/*.log
+lyapunov_analysis/latex/*.out
+lyapunov_analysis/latex/*.synctex.gz
+lyapunov_analysis/latex/*.toc
+lyapunov_analysis/latex/*.bbl
+lyapunov_analysis/latex/*.blg
+lyapunov_analysis/latex/*.idx
+lyapunov_analysis/latex/*.ilg
+lyapunov_analysis/latex/*.ind
+lyapunov_analysis/latex/*.lof
+lyapunov_analysis/latex/*.lot
+lyapunov_analysis/latex/*.nav
+lyapunov_analysis/latex/*.snm
+lyapunov_analysis/latex/*.vrb
+
 # Ignore backup files
 *.bak
 *.backup
