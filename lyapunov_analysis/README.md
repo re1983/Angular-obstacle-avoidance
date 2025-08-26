@@ -14,10 +14,24 @@ The collision avoidance system uses Constant Bearing Decreasing Range (CBDR) det
 - **`stability_analyzer.py`** - Main analysis module with Lyapunov function implementations
 - **`numerical_verification.py`** - Monte Carlo testing and parameter sensitivity analysis
 - **`main_analysis_runner.py`** - Main script to run complete analysis suite
+- **`rigorous_proof_github.md`** - Rigorous mathematical proof with complete derivations
+
+### LaTeX Documents
+- **[`latex/`](./latex/)** - Complete LaTeX version with perfect math rendering
+  - `rigorous_proof.tex` - LaTeX source document
+  - `rigorous_proof.pdf` - Professional PDF output (9 pages)
+  - Compilation tools and scripts
+  - See [`latex/README.md`](./latex/README.md) for details
+
+### HTML and Conversion Tools
+- **`convert_to_html.py`** - Markdown to HTML converter with MathJax
+- **`compare_content.py`** - Content comparison between formats
+- **HTML previews** - Browser-compatible versions with math rendering
 
 ### Documentation
 
 - **`README.md`** - This file, provides overview and usage instructions
+- **`solutions.md`** - GitHub Markdown math rendering solutions
 
 ## Key Features
 

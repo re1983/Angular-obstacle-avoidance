@@ -1,3 +1,4 @@
+GitHub Markdown Math Rendering has Bug. 📄 **[View PDF Version with Proper LaTeX Rendering](latex/rigorous_proof.pdf)**
 # Rigorous Lyapunov Stability Analysis for Angle-Only Collision Avoidance System
 
 ## Complete Mathematical Derivation with Energy Function Approach
