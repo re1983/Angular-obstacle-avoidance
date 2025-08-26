@@ -445,10 +445,193 @@ The proof addresses all mathematical gaps in the original analysis by:
 \item Accounting for maximum turn rate constraints
 \end{itemize}
 
-\subsection{References}
-1. Khalil, H. K. (2002). \textit{Nonlinear Systems}. Prentice Hall.
-2. Tee, K. P., Ge, S. S., \& Tay, E. H. (2009). Barrier Lyapunov functions for the control of output-constrained nonlinear systems. \textit{Automatica}, 45(4), 918-927.
-3. LaValle, S. M. (2006). \textit{Planning Algorithms}. Cambridge University Press.
+% \subsection{References}
+% 1. Khalil, H. K. (2002). \textit{Nonlinear Systems}. Prentice Hall.
+% 2. Tee, K. P., Ge, S. S., \& Tay, E. H. (2009). Barrier Lyapunov functions for the control of output-constrained nonlinear systems. \textit{Automatica}, 45(4), 918-927.
+% 3. LaValle, S. M. (2006). \textit{Planning Algorithms}. Cambridge University Press.
+
+\section{Safety and Stability Analysis with High-Order Control Barrier Functions}
+\label{sec:safety}
+
+In this section, we rigorously analyze the safety of the proposed bearing-only collision avoidance strategy using high-order control barrier functions (HOCBFs) and establish explicit conditions under which safety and forward invariance are guaranteed. The proofs leverage the affine structure of the relative dynamics and provide implementable quantitative bounds on control and sampling.
+
+\subsection{Safety Set, System Model, and Relative Degree}
+\label{sec:cbf_setup}
+
+We consider the relative polar dynamics between ownship and target:
+\begin{align}
+    \dot R &= v_t \cos(\theta - \psi_t) - v_o \cos\beta, \label{eq:Rdot}\\
+    \dot\beta &= \dot\theta - u, \qquad
+    \dot\theta = \frac{v_t}{R}\sin(\theta - \psi_t) - \frac{v_o}{R}\sin\beta, \label{eq:betadot}
+\end{align}
+where $R > 0$ is the range, $\beta$ is the relative look angle, $\theta$ is the line-of-sight (LOS) angle, $v_o$ and $v_t$ are the speeds of ownship and target, $u$ is the ownship heading rate, and $\psi_t$ is the target heading. The following bounds hold:
+\[
+0 < v_o \le V_o^{\max}, \quad 0 < v_t \le V_t^{\max}, \quad 
+|u| \le u_{\max}, \quad |u_t| \le u_{t,\max}.
+\]
+
+Define the safety function:
+\[
+h_0(R) \;\triangleq\; R - R_{\mathrm{safe}}, 
+\]
+and the safe set:
+\[
+\mathcal{C} 
+= 
+\left\{ (R, \beta, \theta) \in \mathbb{R}_{>0} \times \mathbb{S}^1 \times \mathbb{S}^1
+\,\middle|\,
+h_0(R) \ge 0
+\right\}.
+\]
+
+The derivative of $h_0$ is $\dot h_0 = \dot R$, and since $u$ appears only in $\dot\beta$ (not directly in $\dot R$), the relative degree of $h_0$ with respect to $u$ is two. Hence, a high-order CBF is required. Define the first- and second-order barrier functions:
+\begin{align}
+    h_1 &= \dot h_0 + \alpha_1(h_0) = \dot R + k_1 (R - R_{\mathrm{safe}}), \label{eq:h1}\\
+    h_2 &= \dot h_1 + \alpha_2(h_1), \label{eq:h2}
+\end{align}
+where $\alpha_1(s) = k_1 s$ and $\alpha_2(s) = k_2 s$ are class-$\mathcal{K}$ functions with positive constants $k_1, k_2 > 0$.
+
+Differentiating $\dot R$ in \eqref{eq:Rdot} yields:
+\begin{align}
+    \ddot R
+    &= -v_t \sin(\theta - \psi_t) \left( \dot\theta - u_t \right)
+       + v_o \sin\beta \, \dot\beta \nonumber\\
+    &= -v_t \sin(\theta - \psi_t) \left( \tfrac{v_t}{R} \sin(\theta - \psi_t) - \tfrac{v_o}{R} \sin\beta - u_t \right)
+       + v_o \sin\beta \left( \tfrac{v_t}{R} \sin(\theta - \psi_t) - \tfrac{v_o}{R} \sin\beta - u \right). 
+    \label{eq:Rddot}
+\end{align}
+Thus, $\ddot R$ is affine in the control input $u$ with channel:
+\begin{equation}
+    \frac{\partial \ddot R}{\partial u} = - v_o \sin\beta.
+    \label{eq:input_channel}
+\end{equation}
+The second-order CBF $h_2$ can be written as:
+\begin{equation}
+    h_2 = \ddot R + k_1 \dot R + k_2 h_1
+        = 
+        \underbrace{
+            \left( \ddot R|_{u=0} + k_1 \dot R + k_2 h_1 \right)
+        }_{\Phi(x,w)}
+        \;-\; v_o \sin\beta \, u,
+    \label{eq:h2_affine}
+\end{equation}
+where $\Phi(x,w)$ captures drift terms and bounded disturbances.
+
+\subsection{Robust HOCBF Condition and Feasibility}
+\label{sec:cbf_robust}
+
+To ensure robustness against bounded target maneuvers, we compute a conservative lower bound $\underline{\Phi}(x)$ of $\Phi(x,w)$ such that:
+\[
+    \Phi(x,w) \;\ge\; \underline{\Phi}(x).
+\]
+Then, the HOCBF safety condition $h_2 \ge 0$ becomes:
+\begin{equation}
+    \underline{\Phi}(x) - v_o \sin\beta \, u \;\ge\; 0.
+    \label{eq:robust_cbf}
+\end{equation}
+This inequality is affine in $u$ and always feasible if:
+\begin{equation}
+    u_{\max} \;\ge\; \frac{\max\{0, -\underline{\Phi}(x)\}}{v_o |\sin\beta|}.
+    \label{eq:umin_req}
+\end{equation}
+
+\paragraph*{Lemma A (Finite-Time Increase of Range Rate)}
+If there exists a strictly positive constant $L_0$ such that, for all $R \in [R_{\mathrm{safe}}, R_{\mathrm{safe}} + \varepsilon]$:
+\begin{equation}
+    L(R) 
+    \;\triangleq\; 
+    \underline{\Phi}(R) + v_o s_0 u_{\max} 
+    \;\ge\; L_0 > 0,
+    \label{eq:L0_cond}
+\end{equation}
+then for any desired positive range rate lower bound $c \in (0, v_o - v_t)$, the following conditions hold:
+\begin{align}
+    \Delta R &\;\triangleq\; R(0) - R_{\mathrm{safe}} 
+    \;\ge\; 
+    \varepsilon_{\min} 
+    \;\triangleq\; 
+    \frac{(v_o - v_t)^2 - c^2}{2 L_0},
+    \label{eq:epsilon_formula}\\
+    T^\star &\;\triangleq\; \frac{(v_o - v_t) + c}{L_0}.
+\end{align}
+Then, applying the saturated control law:
+\[
+u^\star = - u_{\max} \, \mathrm{sign}(\sin\beta),
+\]
+guarantees:
+\begin{equation}
+    \dot R(T^\star) \;\ge\; c, 
+    \qquad
+    R(t) \;\ge\; R_{\mathrm{safe}}, 
+    \quad
+    \forall t \in [0, T^\star].
+\end{equation}
+
+\paragraph*{Proof:}
+Differentiating $\dot R$ yields \eqref{eq:h2_affine}. With $u = u^\star$, we have:
+\[
+\ddot R \;\ge\; \underline{\Phi}(R) + v_o s_0 u_{\max} \;\ge\; L_0.
+\]
+Integrating:
+\[
+\dot R(t) \;\ge\; \dot R(0) + L_0 t
+           \;\ge\; -(v_o - v_t) + L_0 t.
+\]
+At $T^\star = \frac{(v_o - v_t) + c}{L_0}$:
+\[
+\dot R(T^\star) \;\ge\; c.
+\]
+Integrating again:
+\[
+R(t) \;\ge\; R(0) + \dot R(0)t + \tfrac12 L_0 t^2,
+\]
+and evaluating at $T^\star$ yields the distance condition \eqref{eq:epsilon_formula}, ensuring $R(t) \ge R_{\mathrm{safe}}$ throughout. \hfill $\blacksquare$
+
+\subsection{Safety-Critical QP Controller}
+\label{sec:cbf_clf_qp}
+
+Combining the HOCBF \eqref{eq:robust_cbf} with a control Lyapunov function (CLF) for breaking constant-bearing geometry yields the safety-critical quadratic program (QP):
+\begin{align}
+    \min_{u, \delta} \quad & \tfrac{1}{2} (u - u_{\mathrm{ref}})^2 + \tfrac{\rho}{2} \delta^2 \\
+    \text{s.t.} \quad 
+    & - v_o \sin\beta \, u + \underline{\Phi}(x) \;\ge\; 0, \\
+    & -(\beta - \beta^\star) u \;\le\; 
+      - \tfrac{c_V}{2} (\beta - \beta^\star)^2 
+      - (\beta - \beta^\star)\dot\theta + \delta, \\
+    & -u_{\max} \;\le\; u \;\le\; u_{\max}, 
+      \quad \delta \;\ge\; 0.
+\end{align}
+
+This convex QP yields real-time implementable control commands that guarantee $R(t) \ge R_{\mathrm{safe}}$ while driving the bearing toward a safe configuration.
+
+\paragraph*{Discrete-Time Implementation}
+With zero-order hold sampling of period $\Delta t$, forward invariance is preserved if:
+\begin{equation}
+    \Delta t
+    \;\le\;
+    \min
+    \left\{
+        \frac{\varepsilon_h}{\sup_{x\in \mathcal{N}} |\dot h_2(x)|},
+        \; \frac{\pi}{2 u_{\max}}
+    \right\},
+\end{equation}
+where $\mathcal{N}$ is a neighborhood of the boundary of the safe set.
+
+\paragraph*{Theorem (Forward Invariance)}
+If $R(t_0) \ge R_{\mathrm{safe}}$, $h_1(t_0) \ge 0$, and \eqref{eq:umin_req} is satisfied, then the closed-loop trajectory under the HOCBF–CLF–QP law satisfies:
+\[
+R(t) \;\ge\; R_{\mathrm{safe}}, 
+\quad \forall t \ge t_0.
+\]
+If $\delta$ remains bounded and $c_V > 0$, the bearing error $(\beta - \beta^\star)$ is ultimately bounded.
+
+\paragraph*{Design Guidelines}
+\begin{itemize}
+    \item Increase $k_1$ to accelerate recovery when $R$ approaches $R_{\mathrm{safe}}$.
+    \item Use larger $k_2$ for stronger convergence but balance against control smoothness.
+    \item Increase $\rho$ to prioritize safety over convergence when conflicts arise.
+    \item Ensure $|\sin\beta|$ is not too small near safety-critical conditions to maintain controllability.
+\end{itemize}
 
 
 \end{document}
