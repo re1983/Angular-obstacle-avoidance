@@ -1,5 +1,5 @@
 # Fdb version 4
-["pdflatex"] 1756184979.53455 "f:/Work/Angular-obstacle-avoidance/lyapunov_analysis/latex/rigorous_proof.tex" "rigorous_proof.pdf" "rigorous_proof" 1756184981.33553 0
+["pdflatex"] 1756186782.07527 "f:/Work/Angular-obstacle-avoidance/lyapunov_analysis/latex/rigorous_proof.tex" "rigorous_proof.pdf" "rigorous_proof" 1756186783.92243 0
   "c:/texlive/2025/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc" 1746755845 2375 baa924870cfb487815765f9094cf3728 ""
   "c:/texlive/2025/texmf-dist/fonts/enc/dvips/lm/lm-mathex.enc" 1746755845 3486 c7eadf5dcc57b3b2d11736679f6636ba ""
   "c:/texlive/2025/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc" 1746755845 2405 5dcf2c1b967ee25cc46c58cd52244aed ""
@@ -123,11 +123,11 @@
   "c:/texlive/2025/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1746757836 5569470 f263a82cf6bb394f5bc87b63f38b78df ""
   "c:/texlive/2025/texmf-var/web2c/pdftex/pdflatex.fmt" 1746758192 3567315 5c4f4b64c0ebf5aa3f73501d5ea426f4 ""
   "c:/texlive/2025/texmf.cnf" 1746757810 713 e69b156964470283e0530f5060668171 ""
-  "f:/Work/Angular-obstacle-avoidance/lyapunov_analysis/latex/rigorous_proof.tex" 1756184979 18317 4850a219ca3a4ddfee8a9615555f2225 ""
-  "rigorous_proof.aux" 1756184981 3884 50f72589cc4daffa3a6d0862b8a3f38d "pdflatex"
-  "rigorous_proof.out" 1756184981 6244 7d0b1636cc18d2f1cf7744d9b34180f6 "pdflatex"
-  "rigorous_proof.tex" 1756184979 18317 4850a219ca3a4ddfee8a9615555f2225 ""
-  "rigorous_proof.toc" 1756184981 2697 d8167247dd8ebdc9ba2080fd88442d33 "pdflatex"
+  "f:/Work/Angular-obstacle-avoidance/lyapunov_analysis/latex/rigorous_proof.tex" 1756186778 18237 6af5e8015975755aff86ede10246f868 ""
+  "rigorous_proof.aux" 1756186783 3804 648f1f072fdb9b95c210fd7d24fb7d26 "pdflatex"
+  "rigorous_proof.out" 1756186783 5809 401e3634c1d44211856a48fa166347fd "pdflatex"
+  "rigorous_proof.tex" 1756186778 18237 6af5e8015975755aff86ede10246f868 ""
+  "rigorous_proof.toc" 1756186783 2617 8233020b36ce98ed969f8734a0e89890 "pdflatex"
   (generated)
   "rigorous_proof.aux"
   "rigorous_proof.log"

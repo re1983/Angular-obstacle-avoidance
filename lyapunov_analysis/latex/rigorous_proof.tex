@@ -50,9 +50,9 @@
 \subsubsection{Abstract}
 This document provides a rigorous mathematical proof of Lyapunov stability for the angle-only collision avoidance system based on CBDR principles. The analysis addresses all gaps identified in the previous proof, providing complete derivations for system dynamics, control law effectiveness, and stability properties including safety, boundedness, and ultimate boundedness.
 
-\subsection{1. System Modeling with Complete Dynamics}
+\subsection{System Modeling with Complete Dynamics}
 
-\subsubsection{1.1 State Variables and Coordinate System}
+\subsubsection{State Variables and Coordinate System}
 
 Consider two ships in a 2D plane (North-East-Down coordinate system):
 \begin{itemize}
@@ -77,7 +77,7 @@ Consider two ships in a 2D plane (North-East-Down coordinate system):
 \item Angular diameter: $\alpha = 2\arctan\left(\frac{D_t}{2R}\right)$
 \end{itemize}
 
-\subsubsection{1.2 Complete System Dynamics Derivation}
+\subsubsection{Complete System Dynamics Derivation}
 
 \textbf{Relative velocity components}:
 \begin{itemize}
@@ -134,11 +134,11 @@ Where $u = \dot{\psi}_o$ is the control input (turn rate).
 
 \textbf{Target ship dynamics}: The target ship may also maneuver with turn rate $u_t = \dot{\psi}_t$, constrained by $\lvert u_t \rvert \le u_{t,\mathrm{max}}$. This affects the relative dynamics through the terms involving $\psi_t$.
 
-\subsubsection{1.3 Uniform Bounds and Sampling}
+\subsubsection{Uniform Bounds and Sampling}
 
 We assume bounded speeds and turn rates: $0<v_o\le v_{o,\max}$, $0<v_t\le v_{t,\max}$, $|u|\le u_{o,\max}$, $|u_t|\le u_{t,\max}$. Define $V_{\max}:=v_{o,\max}+v_{t,\max}$. Then $|\dot R|\le V_{\max}$ and $|\dot \theta|\le V_{\max}/R$ for $R>0$. Sampling uses period $\Delta t\in (0,\Delta t_{\max}]$; Section 3.5 states a sufficient $\Delta t_{\max}$.
 
-\subsubsection{1.4 Adversarial Target Considerations}
+\subsubsection{Adversarial Target Considerations}
 
 To ensure robustness against adversarial targets, we assume the target has bounded capabilities:
 \begin{itemize}
@@ -154,7 +154,7 @@ u_{o,\max} > u_{t,\max} \quad \text{and/or} \quad v_{o,\max} > v_{t,\max}
 
 These conditions ensure that the ownship can outmaneuver the target when necessary.
 
-\subsubsection{1.5 Control Law with Maximum Turn Rate Constraint}
+\subsubsection{Control Law with Maximum Turn Rate Constraint}
 
 The control input is constrained by $|u| \leq u_{\max}$, where $u_{\max} = 3^\circ/\mathrm{second} = \frac{\pi}{60}$ radians/second.
 
@@ -180,9 +180,9 @@ where $r$ is bearing rate ($\dot{\theta}$ or $\dot{\beta}$) and $\Delta t$ is sa
 3. \textbf{Navigation Region} ($\alpha < \alpha_{\text{nav}}$):
    - $u = \beta_{\text{goal}}$ (turn toward goal)
 
-\subsection{2. Energy Function (Lyapunov Function) Design}
+\subsection{Energy Function (Lyapunov Function) Design}
 
-\subsubsection{2.1 Barrier Lyapunov Function for Safety}
+\subsubsection{Barrier Lyapunov Function for Safety}
 
 To ensure safe distance $R > R_{\text{safe}}$, define the barrier function:
 
@@ -197,7 +197,7 @@ B(R) = \frac{1}{R - R_{\text{safe}}}, \quad R > R_{\text{safe}}
 \item $\dot{B}(R) = -\frac{\dot{R}}{(R - R_{\text{safe}})^2}$
 \end{itemize}
 
-\subsubsection{2.2 Geometric Lyapunov Function for Convergence}
+\subsubsection{Geometric Lyapunov Function for Convergence}
 
 To analyze relative bearing convergence, define:
 
@@ -212,7 +212,7 @@ L(\beta) = 1 - \cos\beta
 \item $\dot{L}(\beta) = \sin\beta \cdot \dot{\beta}$
 \end{itemize}
 
-\subsubsection{2.3 Composite Energy Function}
+\subsubsection{Composite Energy Function}
 
 Combining safety and convergence:
 
@@ -222,9 +222,9 @@ V(R, \beta) = w_1 B(R) + w_2 L(\beta)
 
 where $w_1, w_2 > 0$ are weighting parameters.
 
-\subsection{3. Rigorous Stability Analysis}
+\subsection{Rigorous Stability Analysis}
 
-\subsubsection{3.1 Safety Proof (Forward Invariance)}
+\subsubsection{Safety Proof (Forward Invariance)}
 
 \textbf{Theorem 1}: If initial condition satisfies $R(0) > R_{\text{safe}}$, then $R(t) > R_{\text{safe}}$ for all $t \geq 0$.
 
@@ -273,7 +273,7 @@ To prove that $\dot{R}$ becomes positive, consider the worst-case scenario where
 
 Since the control action ensures $\dot{R}$ becomes positive before $R$ reaches $R_{\text{safe}}$, we have a contradiction. Therefore $R(t) > R_{\text{safe}}$ for all $t \geq 0$.
 
-\subsubsection{3.2 Boundedness Proof}
+\subsubsection{Boundedness Proof}
 
 \textbf{Theorem 2}: All system states evolve within bounded sets.
 
@@ -300,7 +300,7 @@ V(R, \beta) = w_1 B(R) + w_2 L(\beta)
    - $L(\beta)$ is bounded since $\cos\beta \in [-1, 1]$
    - Thus $V$ is bounded within the feasible domain
 
-\subsubsection{3.3 Ultimate Boundedness Proof with Adversarial Target Consideration}
+\subsubsection{Ultimate Boundedness Proof with Adversarial Target Consideration}
 
 \textbf{Theorem 3}: Under the condition that $u_{o,\max} > u_{t,\max}$ and $v_{o,\max} > v_{t,\max}$, there exist $\delta > 0$ and $T > 0$ such that for $t \geq T$, $R(t) \geq R_{\text{safe}} + \delta$.
 
@@ -371,7 +371,7 @@ This guarantees that the system cannot remain arbitrarily close to $R = R_{\text
 
 The convergence time $T$ depends on the initial conditions and the performance difference between ownship and target. The condition $u_{o,\max} > u_{t,\max}$ ensures that the ownship can always break away from the target's pursuit strategy.
 
-\subsubsection{3.4 Discrete Time Implementation}
+\subsubsection{Discrete Time Implementation}
 
 For practical implementation with sampling time $\Delta t$:
 
@@ -387,7 +387,7 @@ r_k = \frac{\theta_{k+1} - \theta_k}{\Delta t}
 |r_k \cdot \Delta t| \leq \alpha_k
 \]
 
-\paragraph{3.3a Quantified Bounds and Lemmas}
+\paragraph{Quantified Bounds and Lemmas}
 
 Lemma 1 (Relative-geometry bounds). With $V_{\max}$ from Section 1.3 and $R>R_{\text{safe}}$,
 \[
@@ -403,7 +403,7 @@ Proposition 1 (Continuous-time decrease). Fix $w_1,w_2>0$. There exist $c_1,c_2,
 
 Corollary (Ultimate boundedness). If $\delta>0$ satisfies $c_1/\delta^2 > \varepsilon + c_2\,\alpha(R_{\text{safe}}+\delta)^2$, then $R(t)\ge R_{\text{safe}}+\delta$ for all sufficiently large $t$.
 
-\subsubsection{3.5 Discrete-Time Practical Stability}
+\subsubsection{Discrete-Time Practical Stability}
 
 Proposition 2 (Sampled-data decrease). There exist $\Delta t_{\max}>0$ and class-$\mathcal{K}_\infty$ functions $\sigma,\gamma$ such that for $\Delta t\le \Delta t_{\max}$,
 \[
@@ -413,23 +413,23 @@ implying ultimate boundedness with radius shrinking as $\Delta t\to 0$.
 
 \textbf{Modified stability}: For sufficiently small $\Delta t$, the discrete-time system maintains practical stability with error bounds proportional to $\Delta t$.
 
-\subsection{4. Numerical Verification Framework}
+\subsection{Numerical Verification Framework}
 
-\subsubsection{4.1 Lyapunov Function Monitoring}
+\subsubsection{Lyapunov Function Monitoring}
 \begin{itemize}
 \item Compute $B(R_k)$, $L(\beta_k)$, $V(R_k, \beta_k)$ at each time step
 \item Monitor $\dot{V}_k$ using numerical differentiation
 \item Verify that $V$ decreases when needed
 \end{itemize}
 
-\subsubsection{4.2 Stability Indicators}
+\subsubsection{Stability Indicators}
 \begin{itemize}
 \item \textbf{Safety}: $\min_k R_k > R_{\text{safe}}$
 \item \textbf{Boundedness}: $\max_k V(R_k, \beta_k) < V_{\max}$
 \item \textbf{Ultimate boundedness}: $\liminf_{k \to \infty} R_k > R_{\text{safe}} + \delta$
 \end{itemize}
 
-\subsection{5. Conclusion}
+\subsection{Conclusion}
 
 This rigorous analysis proves that the CBDR-based angle-only collision avoidance system guarantees:
 
