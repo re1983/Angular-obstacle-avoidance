@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import math
 
 # Navigation threshold constant (degrees)
-ALPHA_NAV = 1.0  # No collision threat below this angular diameter
+ALPHA_NAV = 0.5  # No collision threat below this angular diameter
 
 class ShipStatus:
     def __init__(self, name, velocity, acceleration, heading, rate_of_turn, position, size=1.0, max_rate_of_turn=[12, 12], velocity_limit=[0.5, 10.0]):
@@ -102,7 +102,7 @@ def adj_ownship_heading_absolute(absolute_bearings, absolute_bearings_difference
     rate_of_turn = ship.rate_of_turn
     max_rate_of_turn = ship.max_rate_of_turn[0]
     current_relative_bearing = get_bearing(ship, target_ship)
-    avoidance_gain = angular_sizes[-1]**2
+    avoidance_gain = angular_sizes[-1]*2
 
     if len(absolute_bearings_difference) >= 1:
         if abs(absolute_bearings_difference[-1]*delta_time) <= angular_sizes[-1]:
@@ -140,7 +140,7 @@ def adj_ownship_heading_relative(bearings, bearings_difference, angular_sizes, s
     rate_of_turn = ship.rate_of_turn
     max_rate_of_turn = ship.max_rate_of_turn[0]
     current_relative_bearing = get_bearing(ship, target_ship)
-    avoidance_gain = angular_sizes[-1]**2
+    avoidance_gain = abs(angular_sizes[-1])*2
 
     if len(bearings_difference) >= 1:
         if abs(bearings_difference[-1]*delta_time) <= angular_sizes[-1]:
@@ -173,9 +173,9 @@ def adj_ownship_heading_relative(bearings, bearings_difference, angular_sizes, s
 def run_single_simulation(use_absolute_bearings=True):
     """Run a single simulation with either absolute or relative bearing control"""
     # Initialize ship statuses - use same initial positions as original files
-    ownship = ShipStatus("Ownship", velocity=1.0, acceleration=0, heading=90, rate_of_turn=0, position=[0, 0, 0], size=0.5)
-    ship = ShipStatus("Ship A", velocity=2.0, acceleration=0, heading=90.0, rate_of_turn=1, position=[15, -15, 0], size=0.5)
-    goal = ShipStatus("Goal", velocity=0.0, acceleration=0, heading=0, rate_of_turn=0, position=[0, 50, 0])
+    ownship = ShipStatus("Ownship", velocity=1.0, acceleration=0, heading=0.0, rate_of_turn=0, position=[0, 0, 0], size=0.5)
+    ship = ShipStatus("Ship A", velocity=2.0, acceleration=0, heading=180.0, rate_of_turn=0, position=[75, 0, 0], size=0.5)
+    goal = ShipStatus("Goal", velocity=0.0, acceleration=0, heading=0, rate_of_turn=0, position=[50, 0, 0])
     
     time_steps = 5000
     delta_time = 0.01
@@ -252,8 +252,8 @@ def run_single_simulation(use_absolute_bearings=True):
     return result
 
 def plot_comparison_results(abs_result, rel_result, delta_time):
-    """Plot comparison results in 2x8 grid"""
-    fig = plt.figure(figsize=(32, 16))
+    """Plot comparison results in 2x5 grid"""
+    fig = plt.figure(figsize=(25, 12))
     
     # Row 1: Absolute Bearings Results
     plot_single_row(abs_result, delta_time, row=1, title_prefix="Absolute Bearing Control - ")
@@ -265,10 +265,10 @@ def plot_comparison_results(abs_result, rel_result, delta_time):
     plt.show()
 
 def plot_single_row(result, delta_time, row, title_prefix=""):
-    """Plot a single row of 8 subplots"""
+    """Plot a single row of 5 subplots"""
     
     # 1. Ship Positions
-    plt.subplot(2, 8, (row-1)*8 + 1)
+    plt.subplot(2, 5, (row-1)*5 + 1)
     ownship_line, = plt.plot(result['ownship_positions'][:, 1], result['ownship_positions'][:, 0], label='Ownship')
     ship_line, = plt.plot(result['ship_positions'][:, 1], result['ship_positions'][:, 0], label='Ship A')
     
@@ -339,7 +339,7 @@ def plot_single_row(result, delta_time, row, title_prefix=""):
     plt.axis('equal')
     
     # 2. Bearing Plot
-    plt.subplot(2, 8, (row-1)*8 + 2)
+    plt.subplot(2, 5, (row-1)*5 + 2)
     plt.plot(result['bearings'], np.arange(len(result['bearings'])) * delta_time, label='Relative Bearing', alpha=1.0)
     absolute_bearings_normalized = result['absolute_bearings'].copy()
     absolute_bearings_normalized[absolute_bearings_normalized > 180] -= 360
@@ -358,7 +358,7 @@ def plot_single_row(result, delta_time, row, title_prefix=""):
     plt.grid(True)
     
     # 3. Angular Size Plot
-    plt.subplot(2, 8, (row-1)*8 + 3)
+    plt.subplot(2, 5, (row-1)*5 + 3)
     plt.plot(np.arange(len(result['angular_sizes'])) * delta_time, result['angular_sizes'], label='Angular Size')
     
     max_angular_size = np.max(result['angular_sizes'])
@@ -384,7 +384,7 @@ def plot_single_row(result, delta_time, row, title_prefix=""):
     plt.grid(True)
     
     # 4. Distance Plot
-    plt.subplot(2, 8, (row-1)*8 + 4)
+    plt.subplot(2, 5, (row-1)*5 + 4)
     plt.plot(np.arange(len(result['distances'])) * delta_time, result['distances'], label='Distance')
     
     min_distance = np.min(result['distances'])
@@ -409,19 +409,8 @@ def plot_single_row(result, delta_time, row, title_prefix=""):
     plt.legend()
     plt.grid(True)
     
-    # 5. Relative Bearing Over Time
-    plt.subplot(2, 8, (row-1)*8 + 5)
-    plt.plot(np.arange(len(result['bearings'])) * delta_time, result['bearings'], label='Relative Bearing')
-    plt.axhline(y=0, color='black', linestyle='--', alpha=0.5, label='0° Line')
-    plt.axhline(y=-180, color='black', linestyle='--', alpha=0.5, label='-180° Line')
-    plt.xlabel('Time (s)')
-    plt.ylabel('Bearing (degrees)')
-    plt.title(f'{title_prefix}Relative Bearing')
-    plt.legend()
-    plt.grid(True)
-    
-    # 6. Ship Velocities
-    plt.subplot(2, 8, (row-1)*8 + 6)
+    # 6. Ship Velocities (移到第5位)
+    plt.subplot(2, 5, (row-1)*5 + 5)
     plt.plot(np.arange(len(result['ownship_velocities'])) * delta_time, result['ownship_velocities'], 
              label='Ownship Velocity', color='blue')
     plt.plot(np.arange(len(result['ship_velocities'])) * delta_time, result['ship_velocities'], 
@@ -432,29 +421,52 @@ def plot_single_row(result, delta_time, row, title_prefix=""):
     plt.legend()
     plt.grid(True)
     
-    # 7. Ownship Heading
-    plt.subplot(2, 8, (row-1)*8 + 7)
-    plt.plot(np.arange(len(result['ownship_headings'])) * delta_time, result['ownship_headings'], 
-             label='Ownship Heading', color='blue')
-    plt.xlabel('Time (s)')
-    plt.ylabel('Heading (degrees)')
-    plt.title(f'{title_prefix}Ownship Heading')
-    plt.legend()
-    plt.grid(True)
+    # 5. Relative Bearing Over Time (隱藏)
+    # plt.subplot(2, 5, (row-1)*5 + 5)
+    # plt.plot(np.arange(len(result['bearings'])) * delta_time, result['bearings'], label='Relative Bearing')
+    # plt.axhline(y=0, color='black', linestyle='--', alpha=0.5, label='0° Line')
+    # plt.axhline(y=-180, color='black', linestyle='--', alpha=0.5, label='-180° Line')
+    # plt.xlabel('Time (s)')
+    # plt.ylabel('Bearing (degrees)')
+    # plt.title(f'{title_prefix}Relative Bearing')
+    # plt.legend()
+    # plt.grid(True)
     
-    # 8. Absolute Bearing Over Time
-    plt.subplot(2, 8, (row-1)*8 + 8)
-    absolute_bearings_normalized = result['absolute_bearings'].copy()
-    absolute_bearings_normalized[absolute_bearings_normalized > 180] -= 360
-    plt.plot(np.arange(len(absolute_bearings_normalized)) * delta_time, absolute_bearings_normalized, 
-             label='Absolute Bearing', linewidth=1)
-    plt.axhline(y=0, color='black', linestyle='--', alpha=0.5, label='0° Line')
-    plt.axhline(y=-180, color='black', linestyle='--', alpha=0.5, label='-180° Line')
-    plt.xlabel('Time (s)')
-    plt.ylabel('Bearing (degrees)')
-    plt.title(f'{title_prefix}Absolute Bearing')
-    plt.legend()
-    plt.grid(True)
+    # 6. Ship Velocities (已移到上方)
+    # plt.subplot(2, 5, (row-1)*5 + 6)
+    # plt.plot(np.arange(len(result['ownship_velocities'])) * delta_time, result['ownship_velocities'], 
+    #          label='Ownship Velocity', color='blue')
+    # plt.plot(np.arange(len(result['ship_velocities'])) * delta_time, result['ship_velocities'], 
+    #          label='Ship A Velocity', color='red')
+    # plt.xlabel('Time (s)')
+    # plt.ylabel('Velocity (m/s)')
+    # plt.title(f'{title_prefix}Velocities')
+    # plt.legend()
+    # plt.grid(True)
+    
+    # 7. Ownship Heading (隱藏)
+    # plt.subplot(2, 8, (row-1)*8 + 7)
+    # plt.plot(np.arange(len(result['ownship_headings'])) * delta_time, result['ownship_headings'], 
+    #          label='Ownship Heading', color='blue')
+    # plt.xlabel('Time (s)')
+    # plt.ylabel('Heading (degrees)')
+    # plt.title(f'{title_prefix}Ownship Heading')
+    # plt.legend()
+    # plt.grid(True)
+    
+    # 8. Absolute Bearing Over Time (隱藏)
+    # plt.subplot(2, 8, (row-1)*8 + 8)
+    # absolute_bearings_normalized = result['absolute_bearings'].copy()
+    # absolute_bearings_normalized[absolute_bearings_normalized > 180] -= 360
+    # plt.plot(np.arange(len(absolute_bearings_normalized)) * delta_time, absolute_bearings_normalized, 
+    #          label='Absolute Bearing', linewidth=1)
+    # plt.axhline(y=0, color='black', linestyle='--', alpha=0.5, label='0° Line')
+    # plt.axhline(y=-180, color='black', linestyle='--', alpha=0.5, label='-180° Line')
+    # plt.xlabel('Time (s)')
+    # plt.ylabel('Bearing (degrees)')
+    # plt.title(f'{title_prefix}Absolute Bearing')
+    # plt.legend()
+    # plt.grid(True)
 
 def run_comparison():
     """Run both simulations and plot comparison"""

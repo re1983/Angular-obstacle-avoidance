@@ -1,0 +1,277 @@
+\documentclass[10pt]{article}
+
+
+%In case you encounter the following error:
+%Error 1010 The PDF file may be corrupt (unable to open PDF file) OR
+%Error 1000 An error occurred while parsing a contents stream. Unable to analyze the PDF file.
+%This is a known problem with pdfLaTeX conversion filter. The file cannot be opened with acrobat reader
+%Please use one of the alternatives below to circumvent this error by uncommenting one or the other
+%\pdfobjcompresslevel=0
+%\pdfminorversion=4
+
+% See the \addtolength command later in the file to balance the column lengths
+% on the last page of the document
+
+% The following packages can be found on http:\\www.ctan.org
+\usepackage{graphics} % for pdf, bitmapped graphics files
+\usepackage{epsfig} % for postscript graphics files
+\usepackage{mathptmx} % assumes new font selection scheme installed
+\usepackage{times} % assumes new font selection scheme installed
+\usepackage{amsmath} % assumes amsmath package installed
+\usepackage{amssymb}  % assumes amsmath package installed
+\usepackage{amsthm}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \usepackage{amsthm}
+\usepackage{mathtools}
+\DeclareMathOperator{\sgn}{sgn}
+% \theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{assumption}{Assumption}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title{\LARGE \bf
+Lyapunov-Stable Angle-Only Collision Avoidance via Constant Bearing Detection
+}
+
+
+\author{Jen-Jui Liu and % <-this % stops a space
+% \thanks{*This work was not supported by any organization}% <-this % stops a space
+% \thanks{$^{1}$Albert Author is with Faculty of Electrical Engineering, Mathematics and Computer Science,
+%         University of Twente, 7500 AE Enschede, The Netherlands
+%         {\tt\small albert.author@papercept.net}}%
+% \thanks{$^{2}$Bernard D. Researcheris with the Department of Electrical Engineering, Wright State University,
+%         Dayton, OH 45435, USA
+%         {\tt\small b.d.researcher@ieee.org}}%
+}
+
+
+\begin{document}
+
+
+
+\maketitle
+\thispagestyle{empty}
+\pagestyle{empty}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{abstract}
+
+
+
+\end{abstract}
+\cite{9482820}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{INTRODUCTION}
+
+Advantages of Barrier Lyapunov Function(BLF)$V = 1/(2z^2)$ over Quadratic Lyapunov Function (QLF)$V(x) = x^T P x$ in this problem:
+\begin{itemize}
+    \item Intrinsic constraint encoding: The safety requirement $\alpha \leq \alpha_{safe}$ is inherently embedded in the definition of the BLF, with $z = \alpha_{safe} - \alpha$.
+
+    \item Less restrictive condition: The BLF only requires $\dot{V} < 0$ near the boundary to drive the state back into the safe set, whereas the QLF demands $\dot{V} < 0$ throughout the entire domain. This makes the BLF condition easier to satisfy.
+
+    \item Performance: BLF analysis naturally leads to an ultimate boundedness conclusion, where the state eventually enters and remains within a subset $\alpha \leq \alpha_{safe}-\delta$ that is smaller than the original safe set. This perfectly aligns with my control objective: not only avoiding collisions but also maintaining a safety margin proactively.
+\end{itemize}
+\section{}
+
+\begin{assumption}[Bounded Dynamics]\label{assump:bounds}
+    The ownship and target dynamics are bounded:
+    \begin{align*}
+        &0 < v_o^{\min} \leq v_o(t) \leq v_o^{\max}, \quad
+        0 \leq v_t(t) \leq v_t^{\max}, \\
+        &|u(t)| \leq u_o^{\max}, \quad
+        |u_t(t)| = |\dot{\psi}_t(t)| \leq u_t^{\max}.
+    \end{align*}
+    The physical diameter of the target, $d_t > 0$, is known.
+\end{assumption}
+
+\begin{assumption}[Initial Safety]\label{assump:init}
+    The initial state is safe: $\alpha(0) < \alpha_{\text{safe}}$.
+\end{assumption}
+
+\begin{theorem}[Safety and Ultimate Boundedness]\label{thm:main}
+    Under Assumptions \ref{assump:bounds} and \ref{assump:init}, consider the system dynamics:
+    \begin{align}
+        \dot{R} &= v_t \cos(\beta + \psi_o - \psi_t) - v_o \cos \beta, \label{eq:rdot} \\
+        \dot{\beta} &= \frac{v_t \sin(\beta + \psi_o - \psi_t) - v_o \sin \beta}{R} - u, \label{eq:betadot} \\
+        \alpha &= \frac{d_t}{R}, \quad \dot{\alpha} = -\frac{\alpha}{R} \dot{R}. \label{eq:adot}
+    \end{align}
+    Applying the control law
+    \begin{equation}\label{eq:control}
+        u = k \, \sgn(\beta) \, (\alpha - \alpha_{\text{safe}})_+, \quad \text{where } (x)_+ = \max(0, x),
+    \end{equation}
+    with a sufficiently high gain $k > 0$, guarantees:
+    \begin{enumerate}
+        \item \textbf{Safety:} The set $\{ \alpha \leq \alpha_{\text{safe}} \}$ is forward invariant: $\alpha(t) \leq \alpha_{\text{safe}} \quad \forall t > 0$.
+        \item \textbf{Ultimate Boundedness:} The system is ultimately bounded. There exists a time $T > 0$ and a bound $\delta > 0$ such that $\alpha(t) \leq \alpha_{\text{safe}} - \delta$ for all $t > T$.
+    \end{enumerate}
+\end{theorem}
+
+\begin{proof}
+    We prove the theorem by constructing a Barrier Lyapunov Function (BLF) and analyzing its time derivative.
+
+    \textbf{Part 1: Definition of the BLF and its Time Derivative}
+
+    Define the safety constraint and corresponding BLF candidate:
+    \begin{align}
+        h(\alpha) &= \alpha_{\text{safe}} - \alpha, \label{eq:hdef} \\
+        V(\alpha) &= \frac{1}{2} \left( \frac{(\alpha - \alpha_{\text{safe}})_+}{\alpha_{\text{safe}}} \right)^2 = \frac{1}{2} \left( \frac{(-h(\alpha))_+}{\alpha_{\text{safe}}} \right)^2. \label{eq:vdef}
+    \end{align}
+    Note that $V(\alpha) = 0$ when $\alpha \leq \alpha_{\text{safe}}$ ($h \geq 0$), and $V(\alpha) > 0$ only when the constraint is violated ($\alpha > \alpha_{\text{safe}}$). The derivative of $V$ is:
+    \begin{equation}\label{eq:vdot}
+        \dot{V} = \frac{(\alpha - \alpha_{\text{safe}})_+}{\alpha_{\text{safe}}^2} \dot{\alpha}.
+    \end{equation}
+    Substituting the dynamics for $\dot{\alpha}$ from \eqref{eq:adot} into \eqref{eq:vdot} yields:
+    \begin{equation}\label{eq:vdot2}
+        \dot{V} = -\frac{(\alpha - \alpha_{\text{safe}})_+}{\alpha_{\text{safe}}^2} \cdot \frac{\alpha}{R} \dot{R}.
+    \end{equation}
+
+    \textbf{Part 2: Analyzing $\dot{R}$ under the Control Law}
+
+    The key to the proof is to show that the control law \eqref{eq:control} ensures $\dot{R} > 0$ when $\alpha \geq \alpha_{\text{safe}}$, which will make $\dot{V}$ in \eqref{eq:vdot2} negative.
+
+    When $(\alpha - \alpha_{\text{safe}})_+ > 0$, the control law is active: $u = k \, \sgn(\beta) \, (\alpha - \alpha_{\text{safe}})_+$. This control input affects $\dot{R}$ through the $\dot{\beta}$ dynamics in \eqref{eq:betadot}. The term $\sgn(\beta)$ is chosen to break the CBDR condition by driving the relative bearing $\beta$ away from zero.
+
+    Consider the worst-case scenario for collision: a head-on approach where $\beta \approx 0$ and $\psi_o - \psi_t \approx \pi$. In this case, from \eqref{eq:rdot}, the initial range rate is:
+    \begin{equation*}
+        \dot{R} \approx v_t \cos(\pi) - v_o \cos(0) = -(v_t + v_o) < 0.
+    \end{equation*}
+    The applied control law $u = k \, \sgn(\beta) \, (\alpha - \alpha_{\text{safe}})_+$ will generate a heading rate command that rotates the ownship's velocity vector. The sign ensures the rotation is away from the target's relative position.
+
+    From \eqref{eq:betadot}, the control input $u$ directly influences $\dot{\beta}$. A sufficiently high gain $k$ will cause a rapid change in $\beta$, which in turn affects $\dot{R}$ in \eqref{eq:rdot} by changing the $\cos\beta$ and $\cos(\beta + \psi_o - \psi_t)$ terms. The ownship's maneuverability advantage ($u_o^{\max}$ being sufficiently large relative to $u_t^{\max}$ and the closing speed) ensures that there exists a finite time $\tau$ after the control is activated such that:
+    \begin{equation}\label{eq:rdotpositive}
+        \dot{R} \geq \epsilon > 0 \quad \text{for all } t > \tau,
+    \end{equation}
+    where $\epsilon$ is a positive constant that depends on the ownship's maximum turn rate and speed.
+
+    \textbf{Part 3: Proving Forward Invariance (Safety)}
+
+    For $\alpha \leq \alpha_{\text{safe}}$, $V(\alpha) = 0$ and $\dot{V} = 0$, trivially satisfying the invariance condition.
+
+    Now, analyze the case when the state attempts to leave the safe set, i.e., when $\alpha \to \alpha_{\text{safe}}^+$. From \eqref{eq:vdot2} and \eqref{eq:rdotpositive}:
+    \begin{align*}
+        \dot{V} &= -\frac{(\alpha - \alpha_{\text{safe}})_+}{\alpha_{\text{safe}}^2} \cdot \frac{\alpha}{R} \dot{R} \leq -\frac{(\alpha - \alpha_{\text{safe}})_+}{\alpha_{\text{safe}}^2} \cdot \frac{\alpha_{\text{safe}}}{R} \epsilon \\ 
+                &= -\kappa (\alpha - \alpha_{\text{safe}})_+,
+    \end{align*}
+    where $\kappa = \frac{\epsilon}{R \alpha_{\text{safe}}} > 0$.
+    This inequality, $\dot{V} \leq -\kappa (\alpha - \alpha_{\text{safe}})_+$, shows that whenever the state is outside the safe set ($(\alpha - \alpha_{\text{safe}})_+ > 0$), the derivative $\dot{V}$ is negative. Consequently, $V$ cannot increase and the state cannot cross the boundary $\alpha = \alpha_{\text{safe}}$ into the unsafe region. This proves forward invariance of the safe set.
+
+    \textbf{Part 4: Proving Ultimate Boundedness}
+
+    The inequality $\dot{V} \leq -\kappa (\alpha - \alpha_{\text{safe}})_+$ can be rewritten using the definition of $V$ from \eqref{eq:vdef}:
+    \begin{align*}
+        \dot{V} &\leq -\kappa \alpha_{\text{safe}} \sqrt{2V} \\
+        \therefore \frac{d}{dt} \left( \sqrt{V} \right) &= \frac{\dot{V}}{2\sqrt{V}} \leq -\frac{\kappa \alpha_{\text{safe}}}{\sqrt{2}}.
+    \end{align*}
+    This differential inequality implies that $\sqrt{V}$ decreases linearly with time whenever $V > 0$. Therefore, there exists a finite time $T$ such that for all $t > T$, $V(\alpha(t)) = 0$, meaning $\alpha(t) \leq \alpha_{\text{safe}}$.
+
+    Moreover, the system does not come to rest arbitrarily close to the boundary. The control effort remains active as long as $\alpha$ is close to $\alpha_{\text{safe}}$, continually driving the state to a lower value. Thus, the state is ultimately bounded within a subset $\{ \alpha \leq \alpha_{\text{safe}} - \delta \}$ for some $\delta > 0$, completing the proof.
+\end{proof}
+
+
+\section{MATH}
+
+\begin{assumption}[Bounded Dynamics]\label{assump:bounds}
+    The ownship and target dynamics are bounded:
+    \begin{align*}
+        &0 < v_o^{\min} \leq v_o(t) \leq v_o^{\max}, \quad
+        0 \leq v_t(t) \leq v_t^{\max}, \\
+        &|u(t)| \leq u_o^{\max}, \quad
+        |u_t(t)| = |\dot{\psi}_t(t)| \leq u_t^{\max}.
+    \end{align*}
+    The physical diameter of the target, $d_t > 0$, is known or can be estimated.
+\end{assumption}
+
+\begin{assumption}[Initial Safety]\label{assump:init}
+    The initial state is safe: $\alpha(0) < \alpha_{\text{safe}}$.
+\end{assumption}
+
+\begin{assumption}[Non-Cooperative Target]\label{assump:adversarial}
+    The target may behave in a non-cooperative or adversarial manner. Its control inputs $v_t(t)$ and $u_t(t)$ are not known to the ownship and can vary within the bounds of Assumption \ref{assump:bounds} to minimize the time to collision or to maintain a collision course.
+\end{assumption}
+
+\begin{theorem}[Safety and Ultimate Boundedness]\label{thm:main}
+    Under Assumptions \ref{assump:bounds}, \ref{assump:init}, and \ref{assump:adversarial}, consider the system dynamics given by \eqref{eq:rdot}, \eqref{eq:betadot}, and \eqref{eq:adot}. Let the safety threshold be defined as $\alpha_{\text{safe}} = d_t / R_{\text{min}}$, where $R_{\text{min}}$ is the minimum required separation distance.
+
+    If the ownship's maximum turn rate satisfies the following \textbf{Maneuverability Condition}:
+    \begin{equation}\label{eq:maneuverability}
+        u_o^{\max} > \frac{v_t^{\max} \cdot u_t^{\max} + (v_o^{\max} + v_t^{\max})^2 / R_{\text{min}}}{\min(v_o^{\min}, v_t^{\max})},
+    \end{equation}
+    then, applying the control law
+    \begin{equation}\label{eq:control}
+        u = k \, \sgn(\beta) \, (\alpha - \alpha_{\text{trigger}})_+, \quad k > 0,
+    \end{equation}
+    where $\alpha_{\text{trigger}} = d_t / (R_{\text{min}} + \delta)$ for some $\delta > 0$, guarantees:
+    \begin{enumerate}
+        \item \textbf{Safety and Forward Invariance:} The set $\mathcal{S} = \{ \alpha \leq \alpha_{\text{trigger}} \}$ is forward invariant. Furthermore, since $\alpha_{\text{trigger}} < \alpha_{\text{safe}}$, this implies $\alpha(t) < \alpha_{\text{safe}}$ for all $t > 0$, ensuring collision avoidance.
+        \item \textbf{Ultimate Boundedness:} The system is ultimately bounded within the set $\{ \alpha \leq \alpha_{\text{trigger}} - \gamma \}$ for some $\gamma > 0$.
+    \end{enumerate}
+    Moreover, even if Condition \eqref{eq:maneuverability} is not fully satisfied, the control law \eqref{eq:control} is Pareto optimal in the sense that it maximizes the time-to-collision (TTC) under the given control authority $u_o^{\max}$, thereby maximizing the chances of survival and creating the longest possible window for other recovery actions.
+\end{theorem}
+
+\begin{proof}
+    The proof is divided into three parts.
+
+    \textbf{Part 1: Reformulation with Trigger Threshold}
+    The control law is activated at $\alpha_{\text{trigger}} < \alpha_{\text{safe}}$ to account for the system's reaction time. This ensures control action begins \textit{before} the physical safety boundary is reached. We now prove invariance for the set $\mathcal{S} = \{ \alpha \leq \alpha_{\text{trigger}} \}$.
+
+    \textbf{Part 2: Maneuverability Condition Derivation}
+    The core of the proof is to show that the ownship can generate a positive range rate ($\dot{R} > 0$) faster than the target can negate it, under the worst-case adversarial scenario.
+
+    Consider the dynamics of the range rate \eqref{eq:rdot}:
+    \[
+    \dot{R} = v_t \cos(\beta + \psi_o - \psi_t) - v_o \cos \beta.
+    \]
+    Its second derivative, $\ddot{R}$, represents the ability to \textit{change} the closing speed. After differentiating and substituting the dynamics, $\ddot{R}$ can be expressed in an affine form with respect to the ownship's control input $u$:
+    \[
+    \ddot{R} = \Phi(x, v_t, u_t) + G(x, v_o) u,
+    \]
+    where $G(x, v_o) = v_o \sin \beta$ is the control gain channel. The function $\Phi$ aggregates all other terms, including the target's unknown control $u_t$.
+
+    For the ownship to be able to enforce an increase in $\dot{R}$ (i.e., $\ddot{R} > 0$), its maximum control authority must overcome the worst-case negative drift $\Phi$ caused by the target:
+    \[
+    u_o^{\max} \cdot |G(x, v_o)| > |\Phi_{\text{worst-case}}(x, v_t, u_t)|.
+    \]
+    A conservative lower bound for the gain is $|G| \geq \min(v_o^{\min}, v_t^{\max})$. A worst-case bound for the drift term $\Phi$ can be derived as:
+    \[
+    |\Phi| \leq v_t^{\max} \cdot u_t^{\max} + \frac{(v_o^{\max} + v_t^{\max})^2}{R_{\text{min}}}.
+    \]
+    The first term comes from the target's maximum turn rate affecting its velocity direction. The second term arises from the centripetal forces due to the relative motion. Substituting these bounds yields the Maneuverability Condition \eqref{eq:maneuverability}. This condition ensures that the ownship has sufficient authority to make $\ddot{R} > 0$ even in the worst case.
+
+    \textbf{Part 3: Lyapunov Analysis with a Barrier Function}
+    We now use a Barrier Lyapunov Function (BLF) to formalize the proof of forward invariance. Define the candidate BLF:
+    \[
+    V(\alpha) = \frac{1}{2} \left( \frac{(\alpha - \alpha_{\text{trigger}})_+}{\alpha_{\text{trigger}}} \right)^2.
+    \]
+    Its time derivative is:
+    \[
+    \dot{V} = \frac{(\alpha - \alpha_{\text{trigger}})_+}{\alpha_{\text{trigger}}^2} \dot{\alpha} = -\frac{(\alpha - \alpha_{\text{trigger}})_+}{\alpha_{\text{trigger}}^2} \cdot \frac{\alpha}{R} \dot{R}.
+    \]
+    When $\alpha > \alpha_{\text{trigger}}$, the control law \eqref{eq:control} is active. The Maneuverability Condition \eqref{eq:maneuverability} guarantees that the ownship can generate a positive range rate $\dot{R} \geq \epsilon > 0$ in finite time. Therefore:
+    $$
+    \dot{V} \leq -\frac{(\alpha - \alpha_{\text{trigger}})_+}{\alpha_{\text{trigger}}^2} \cdot \frac{\alpha_{\text{trigger}}}{R_{\text{min}}} \epsilon = -\kappa (\alpha - \alpha_{\text{trigger}})_+,
+    $$
+    where $\kappa = \frac{\epsilon}{\alpha_{\text{trigger}} R_{\text{min}}} > 0$. This inequality implies that $\dot{V} < 0$ whenever $(\alpha - \alpha_{\text{trigger}})_+ > 0$. By the properties of BLFs, this ensures that the set $\mathcal{S} = \{ \alpha \leq \alpha_{\text{trigger}} \}$ is forward invariant.
+
+    The inequality $\dot{V} \leq -\kappa (\alpha - \alpha_{\text{trigger}})_+$ can be rewritten as $\dot{V} \leq -\kappa \alpha_{\text{trigger}} \sqrt{2V}$. This shows that $V$ decreases at a rate proportional to $\sqrt{V}$, ensuring that not only does the state return to $\mathcal{S}$, but it is also ultimately bounded away from the boundary by a margin $\gamma$, proving the second claim.
+
+    \textbf{Part 4: Optimality When Condition is Not Met}
+    If \eqref{eq:maneuverability} is not met, there may exist adversarial target strategies that lead to collision. However, the control law \eqref{eq:control} chooses the control input $u$ that maximizes the instantaneous rate of change of the range rate, $\ddot{R}$, within the constraints $|u| \leq u_o^{\max}$. This is equivalent to maximizing $\dot{R}$ over time, which directly translates to maximizing the time-to-collision (TTC). Therefore, even in failure scenarios, this control law provides the best possible outcome (longest time to impact) for the given limited control authority, which may allow for secondary strategies to be deployed.
+\end{proof}
+\end{document}
+
+\section{CONCLUSIONS}
+
+
+\section*{APPENDIX}
+
+
+\section*{ACKNOWLEDGMENT}
+
+\bibliographystyle{IEEEtran}
+\bibliography{IEEEexample}
+
+
+\end{document}
