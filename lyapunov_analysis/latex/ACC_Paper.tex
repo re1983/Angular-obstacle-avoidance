@@ -1,0 +1,157 @@
+\documentclass[10pt]{article}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{mathtools}
+\DeclareMathOperator{\sgn}{sgn}
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+\renewcommand{\qedsymbol}{$\blacksquare$}
+
+\title{Rigorous Analysis of a Bio-Inspired, \\ Angle-Only Collision Avoidance Law}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This paper presents a comprehensive stability analysis for a bearing-only collision avoidance algorithm inspired by biological visual navigation. The control law utilizes only the angular diameter and relative bearing of an approaching object, making it suitable for platforms with limited sensing capabilities, such as small UAVs equipped with monocular cameras. We provide two primary results: (1) a proof of safety and ultimate boundedness under non-adversarial target motion, and (2) a rigorous sufficient condition for safety against a bounded adversary, alongside a proof of Pareto optimality in maximizing time-to-collision when this condition is not met. The analysis bridges the gap between bio-inspired heuristics and formally verifiable control guarantees.
+\end{abstract}
+
+% --- Section 1: Problem Formulation & Definitions ---
+\section{Problem Formulation and Definitions}
+
+\begin{assumption}[Bounded Dynamics]\label{assump:bounds}
+    The ownship (pursuer/ego vehicle) and target dynamics are bounded:
+    \begin{align*}
+        &0 < v_o^{\min} \leq v_o(t) \leq v_o^{\max}, \quad
+        0 \leq v_t(t) \leq v_t^{\max}, \\
+        &|u(t)| \leq u_o^{\max}, \quad
+        |u_t(t)| = |\dot{\psi}_t(t)| \leq u_t^{\max}.
+    \end{align*}
+    The physical diameter of the target, $d_t > 0$, is known or can be estimated via classification.
+\end{assumption}
+
+\begin{assumption}[Initial Safety]\label{assump:init}
+    The initial state is safe with respect to the ultimate collision boundary: $\alpha(0) < \alpha_{\text{safe}}$.
+\end{assumption}
+
+\begin{definition}[Angular Diameter and Safety]\label{def:alpha}
+    The angular diameter $\alpha$ and the safe angular limit $\alpha_{\text{safe}}$ are defined as:
+    \[
+    \alpha(t) \triangleq \frac{d_t}{R(t)}, \quad \alpha_{\text{safe}} \triangleq \frac{d_t}{R_{\text{min}}},
+    \]
+    where $R_{\text{min}} > 0$ is the minimum permissible distance between the ownship and target. A violation $\alpha(t) \geq \alpha_{\text{safe}}$ implies $R(t) \leq R_{\text{min}}$.
+\end{definition}
+
+\begin{definition}[Control Trigger Threshold]\label{def:trigger}
+    The control activation threshold $\alpha_{\text{trigger}}$ is defined as:
+    \[
+    \alpha_{\text{trigger}} \triangleq \frac{d_t}{R_{\text{min}} + \delta} = \alpha_{\text{safe}} \cdot \frac{R_{\text{min}}}{R_{\text{min}} + \delta},
+    \]
+    where $\delta > 0$ is a design parameter representing a safety margin. By definition, $\alpha_{\text{trigger}} < \alpha_{\text{safe}}$.
+\end{definition}
+
+The system kinematics are given by:
+\begin{align}
+    \dot{R} &= v_t \cos(\beta + \psi_o - \psi_t) - v_o \cos \beta, \label{eq:rdot} \\
+    \dot{\beta} &= \frac{v_t \sin(\beta + \psi_o - \psi_t) - v_o \sin \beta}{R} - u, \label{eq:betadot} \\
+    \dot{\alpha} &= -\frac{\alpha}{R} \dot{R}. \label{eq:adot}
+\end{align}
+
+The bio-inspired control law is:
+\begin{equation}\label{eq:control}
+    u = k \, \sgn(\beta) \, (\alpha - \alpha_{\text{trigger}})_+, \quad k > 0.
+\end{equation}
+
+% --- Section 2: Analysis for Non-Adversarial Targets ---
+\section{Safety under Non-Adversarial Target Motion}
+
+\begin{assumption}[Non-Adversarial Target]\label{assump:nonadv}
+    The target's motion is non-adversarial. Its velocity $(v_t)$ and turn rate $(u_t)$ are not correlated with the ownship's state in a way that actively minimizes time-to-collision. This includes common scenarios like constant velocity or random motion.
+\end{assumption}
+
+\begin{theorem}[Safety and Invariance under Non-Adversarial Motion]\label{thm:nonadv}
+    Under Assumptions \ref{assump:bounds}, \ref{assump:init}, and \ref{assump:nonadv}, the control law \eqref{eq:control} applied to system \eqref{eq:rdot}--\eqref{eq:adot} ensures:
+    \begin{enumerate}
+        \item \textbf{Forward Invariance:} The set $\mathcal{S} = \{ \alpha \leq \alpha_{\text{trigger}} \}$ is forward invariant.
+        \item \textbf{Collision Avoidance:} Since $\alpha_{\text{trigger}} < \alpha_{\text{safe}}$, it follows that $\alpha(t) < \alpha_{\text{safe}}$ for all $t > 0$.
+        \item \textbf{Ultimate Boundedness:} The state is ultimately bounded within $\{ \alpha \leq \alpha_{\text{trigger}} - \gamma \}$ for some $\gamma > 0$.
+    \end{enumerate}
+\end{theorem}
+
+\begin{proof}
+    The proof relies on a Barrier Lyapunov Function (BLF).
+    \begin{enumerate}
+        \item[(1, 2)] Define the BLF candidate for the set $\mathcal{S}$:
+        \[
+        V(\alpha) = \frac{1}{2} \left( \frac{(\alpha - \alpha_{\text{trigger}})_+}{\alpha_{\text{trigger}}} \right)^2.
+        \]
+        Its time derivative is:
+        \[
+        \dot{V} = \frac{(\alpha - \alpha_{\text{trigger}})_+}{\alpha_{\text{trigger}}^2} \dot{\alpha} = -\frac{(\alpha - \alpha_{\text{trigger}})_+}{\alpha_{\text{trigger}}^2} \cdot \frac{\alpha}{R} \dot{R}.
+        \]
+        When $(\alpha - \alpha_{\text{trigger}})_+ > 0$, the control law is active. The function of the control is to break the Constant Bearing (CBDR) condition. Under Assumption \ref{assump:nonadv}, the ownship's maneuver is sufficient to cause a positive rate of change of the range rate ($\ddot{R} > 0$), leading to $\dot{R} \geq \epsilon > 0$ in finite time. Thus:
+        \[
+        \dot{V} \leq -\frac{(\alpha - \alpha_{\text{trigger}})_+}{\alpha_{\text{trigger}}^2} \cdot \frac{\alpha_{\text{trigger}}}{R} \epsilon = -\kappa (\alpha - \alpha_{\text{trigger}})_+ \leq 0.
+        \]
+        This ensures $V$ cannot increase, proving forward invariance of $\mathcal{S}$.
+        \item[(3)] The inequality $\dot{V} \leq -\kappa (\alpha - \alpha_{\text{trigger}})_+$ can be expressed as $\dot{V} \leq -\kappa \alpha_{\text{trigger}} \sqrt{2V}$. Solving this differential inequality shows that $V$ converges to zero in finite time and remains there, proving ultimate boundedness away from the boundary.
+    \end{enumerate}
+\end{proof}
+
+% --- Section 3: Analysis for Adversarial Targets ---
+\section{Safety and Optimality under Adversarial Target Motion}
+
+\begin{assumption}[Adversarial Target]\label{assump:adv}
+    The target may behave adversarially. Its controls $v_t(t)$ and $u_t(t)$ can be chosen within their bounds to minimize the time-to-collision or maintain a collision course.
+\end{assumption}
+
+\begin{theorem}[Maneuverability Condition for Adversarial Targets]\label{thm:adv}
+    Under Assumptions \ref{assump:bounds}, \ref{assump:init}, and \ref{assump:adv}, the ownship can guarantee collision avoidance ($\alpha(t) < \alpha_{\text{safe}}$) against any admissible adversarial target if its maximum turn rate satisfies the following sufficient condition:
+    \begin{equation}\label{eq:maneuverability}
+        u_o^{\max} > \frac{v_t^{\max} u_t^{\max} + \frac{(v_o^{\max} + v_t^{\max})^2}{R_{\text{min}}}}{\min(v_o^{\min}, v_t^{\max})}.
+    \end{equation}
+    If this condition holds, the conclusions of Theorem \ref{thm:nonadv} remain valid.
+\end{theorem}
+
+\begin{proof}
+    The proof analyzes the system's ability to enforce a positive range rate.
+    \begin{itemize}
+        \item Differentiating \eqref{eq:rdot} yields an expression for $\ddot{R}$ that is affine in the ownship's control $u$:
+        \[
+        \ddot{R} = \Phi(\mathbf{x}, v_t, u_t) + G(\mathbf{x}, v_o) u, \quad \text{where} \quad G(\mathbf{x}, v_o) = v_o \sin\beta.
+        \]
+    \item Here, $\Phi$ encapsulates all terms involving the target's controls and the known dynamics. A conservative worst-case bound is:
+    \[
+    |\Phi| \leq v_t^{\max} u_t^{\max} + \frac{(v_o^{\max} + v_t^{\max})^2}{R_{\text{min}}}.
+    \]
+        \item The ownship's control authority to overcome this drift is $|G \cdot u| \leq v_o^{\max} u_o^{\max}$. A conservative lower bound on the gain is $|G| \geq \min(v_o^{\min}, v_t^{\max})$ (e.g., considering the scenario where $\beta$ is near $\pi/2$).
+    \item To ensure the ownship can always make $\ddot{R} > 0$ regardless of the target's action, we require:
+    \[
+    u_o^{\max} \cdot \min(v_o^{\min}, v_t^{\max}) > v_t^{\max} u_t^{\max} + \frac{(v_o^{\max} + v_t^{\max})^2}{R_{\text{min}}}.
+    \]
+        Rearranging this inequality yields the Maneuverability Condition \eqref{eq:maneuverability}.
+    \end{itemize}
+    If this condition holds, the ownship can always generate a control input to achieve $\dot{R} \geq \epsilon > 0$ in finite time. The remainder of the proof then mirrors the BLF argument from Theorem \ref{thm:nonadv}.
+\end{proof}
+
+\begin{proposition}[Pareto Optimality in Survival Time]\label{prop:optimality}
+    If the Maneuverability Condition \eqref{eq:maneuverability} is not satisfied, there exist adversarial strategies that lead to collision. However, the control law \eqref{eq:control} is Pareto optimal: it maximizes the time-to-collision (TTC) under the constraints $|u| \leq u_o^{\max}$, thereby providing the best possible chance for survival and creating the longest possible window for alternative recovery strategies.
+\end{proposition}
+
+\begin{proof}
+    The control law \eqref{eq:control} can be interpreted as a gradient-based policy.
+    \begin{itemize}
+        \item The time derivative of TTC, $\tau = -R / \dot{R}$ (when $\dot{R} < 0$), is maximized by maximizing $\ddot{R}$.
+        \item The term $\sgn(\beta)$ in \eqref{eq:control} is chosen to align the ownship's control effort with the direction that maximizes the instantaneous increase in $\dot{R}$ (or minimizes its decrease).
+        \item The gain $k(\alpha - \alpha_{\text{trigger}})_+$ ensures the control effort is proportional to the urgency of the threat, saturating at the maximum authority $u_o^{\max}$.
+        \item Therefore, this law is the optimal reactive strategy within the ownship's actuation constraints for maximizing TTC, regardless of the target's behavior.
+    \end{itemize}
+\end{proof}
+
+\end{document}
