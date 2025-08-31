@@ -5,12 +5,12 @@ import math
 # Default simulation parameters
 DEFAULT_OWNSHIP_CONFIG = {
     "name": "Ownship",
-    "velocity": 1.0,
+    "velocity": 15,
     "acceleration": 0,
     "heading": 0.0,
     "rate_of_turn": 0,
     "position": [0, 0, 0],
-    "size": 0.5,
+    "size": 2.0,
     "max_rate_of_turn": [22, 22]
 }
 
@@ -31,15 +31,15 @@ DEFAULT_GOAL_CONFIG = {
     "acceleration": 0,
     "heading": 0,
     "rate_of_turn": 0,
-    "position": [50, 0, 0],
-    "size": 0.5,
+    "position": [1500, 0, 0],
+    "size": 2.0,
     "max_rate_of_turn": [0, 0]
 }
 
 DEFAULT_SIM_PARAMS = {
-    "time_steps": 10000,  # 更大的數字以避免過早timeout
+    "time_steps": 20000,  # 更大的數字以避免過早timeout
     "delta_time": 0.01,
-    "ALPHA_TRIG": 1.0
+    "ALPHA_TRIG": 0.5
 }
 
 class ShipStatus:
@@ -85,60 +85,6 @@ class ShipStatus:
             max_rate_of_turn=self.max_rate_of_turn.copy(),
             velocity_limit=self.velocity_limit.copy()
         )
-
-def generate_ship_collision_position(ownship_config, goal_config, ship_velocity, ship_heading, 
-                                    collision_ratio_range=(0.4, 0.6), offset_range=(-20, 20)):
-    """
-    計算Ship A的初始位置，使其在Ownship路徑的指定範圍內發生碰撞
-    
-    Args:
-        ownship_config: Ownship配置字典
-        goal_config: Goal配置字典
-        ship_velocity: Ship A的速度
-        ship_heading: Ship A的航向 (度)
-        collision_ratio_range: 碰撞發生在Ownship路徑的比例範圍 (0.4, 0.6) = 40%-60%
-        offset_range: 垂直於Ownship路徑的偏移範圍 (米)
-    
-    Returns:
-        list: Ship A的初始位置 [x, y, z]
-    """
-    # 獲取Ownship和Goal的位置
-    ownship_pos = np.array(ownship_config["position"])
-    goal_pos = np.array(goal_config["position"])
-    ownship_velocity = ownship_config["velocity"]
-    
-    # 計算Ownship的路徑向量
-    path_vector = goal_pos - ownship_pos
-    path_length = np.linalg.norm(path_vector)
-    path_direction = path_vector / path_length
-    
-    # 隨機選擇碰撞發生的位置比例 (40%-60%)
-    collision_ratio = np.random.uniform(collision_ratio_range[0], collision_ratio_range[1])
-    collision_point = ownship_pos + collision_ratio * path_vector
-    
-    # 計算到達碰撞點的時間 (假設Ownship等速前進)
-    time_to_collision = (collision_ratio * path_length) / ownship_velocity
-    
-    # 計算Ship A需要行進的距離
-    ship_travel_distance = ship_velocity * time_to_collision
-    
-    # 計算Ship A的初始位置
-    # Ship A的運動方向 (Ship A的航向轉換為方向向量)
-    ship_direction = np.array([
-        np.cos(np.radians(ship_heading)),
-        np.sin(np.radians(ship_heading)),
-        0
-    ])
-    
-    # Ship A的初始位置 = 碰撞點 - Ship A運動向量
-    ship_initial_position = collision_point - ship_travel_distance * ship_direction
-    
-    # 添加垂直偏移以避免完全對撞
-    perpendicular_direction = np.array([-path_direction[1], path_direction[0], 0])
-    offset = np.random.uniform(offset_range[0], offset_range[1])
-    ship_initial_position += offset * perpendicular_direction
-    
-    return ship_initial_position.tolist()
 
 def calculate_ship_initial_position_with_turning(ownship_config, goal_config, 
                                                ship_velocity, ship_heading, ship_rate_of_turn,
@@ -253,152 +199,12 @@ def create_collision_scenario_with_turning(ship_velocity=2.0, ship_heading=180.0
         "motion_type": "circular" if abs(ship_rate_of_turn) > 1e-10 else "linear"
     }
     
-    print(f"=== 碰撞預測資訊 ===")
-    print(f"Ship A初始位置: [{initial_pos[0]:.2f}, {initial_pos[1]:.2f}, {initial_pos[2]:.2f}]")
-    print(f"預測碰撞點: [{collision_point[0]:.2f}, {collision_point[1]:.2f}, {collision_point[2]:.2f}]")
-    print(f"預測碰撞時間: {collision_time:.2f}s")
-    print(f"碰撞位置: Ownship路徑的{collision_ratio*100:.1f}%")
-    print(f"Ship A運動類型: {ship_config['_collision_info']['motion_type']}")
-    
-    return ship_config
-
-def create_collision_scenario(ship_velocity=2.0, ship_heading=180.0, ship_rate_of_turn=0, 
-                            ship_size=0.5, collision_ratio_range=(0.4, 0.6)):
-    """
-    創建會發生碰撞的情境配置
-    
-    Args:
-        ship_velocity: Ship A的速度
-        ship_heading: Ship A的航向 (度)
-        ship_rate_of_turn: Ship A的轉向速度
-        ship_size: Ship A的大小
-        collision_ratio_range: 碰撞發生位置比例範圍
-    
-    Returns:
-        dict: Ship A的完整配置
-    """
-    ship_position = generate_ship_collision_position(
-        DEFAULT_OWNSHIP_CONFIG, 
-        DEFAULT_GOAL_CONFIG,
-        ship_velocity, 
-        ship_heading,
-        collision_ratio_range
-    )
-    
-    ship_config = {
-        "name": "Ship A",
-        "velocity": ship_velocity,
-        "acceleration": 0,
-        "heading": ship_heading,
-        "rate_of_turn": ship_rate_of_turn,
-        "position": ship_position,
-        "size": ship_size,
-        "max_rate_of_turn": [3, 3]
-    }
-    
-    return ship_config
-
-def create_deterministic_collision_scenario(ship_velocity=2.0, ship_heading=180.0, 
-                                          collision_ratio=0.5, offset=0.0):
-    """
-    創建確定性的碰撞場景（不使用隨機值）
-    
-    Args:
-        ship_velocity: Ship A的速度
-        ship_heading: Ship A的航向 (度)
-        collision_ratio: 碰撞發生在Ownship路徑的比例 (0.5 = 50%)
-        offset: 垂直於Ownship路徑的偏移 (米)
-    
-    Returns:
-        dict: Ship A的完整配置
-    """
-    # 獲取Ownship和Goal的位置
-    ownship_pos = np.array(DEFAULT_OWNSHIP_CONFIG["position"])
-    goal_pos = np.array(DEFAULT_GOAL_CONFIG["position"])
-    ownship_velocity = DEFAULT_OWNSHIP_CONFIG["velocity"]
-    
-    # 計算Ownship的路徑向量
-    path_vector = goal_pos - ownship_pos
-    path_length = np.linalg.norm(path_vector)
-    path_direction = path_vector / path_length
-    
-    # 碰撞點
-    collision_point = ownship_pos + collision_ratio * path_vector
-    
-    # 計算到達碰撞點的時間
-    time_to_collision = (collision_ratio * path_length) / ownship_velocity
-    
-    # 計算Ship A需要行進的距離
-    ship_travel_distance = ship_velocity * time_to_collision
-    
-    # Ship A的運動方向
-    ship_direction = np.array([
-        np.cos(np.radians(ship_heading)),
-        np.sin(np.radians(ship_heading)),
-        0
-    ])
-    
-    # Ship A的初始位置
-    ship_initial_position = collision_point - ship_travel_distance * ship_direction
-    
-    # 添加偏移
-    perpendicular_direction = np.array([-path_direction[1], path_direction[0], 0])
-    ship_initial_position += offset * perpendicular_direction
-    
-    ship_config = {
-        "name": "Ship A",
-        "velocity": ship_velocity,
-        "acceleration": 0,
-        "heading": ship_heading,
-        "rate_of_turn": 0,
-        "position": ship_initial_position.tolist(),
-        "size": 0.5,
-        "max_rate_of_turn": [12, 12]
-    }
-    
-    return ship_config
-
-def quick_collision_test(ship_velocity=2.0, ship_heading=180.0, ship_size=0.5, 
-                        collision_position=0.5, enable_avoidance=True):
-    """
-    快速測試碰撞場景的簡化介面
-    
-    Args:
-        ship_velocity: Ship A的速度 (m/s)
-        ship_heading: Ship A的航向 (度)
-        ship_size: Ship A的大小 (m)
-        collision_position: 碰撞發生在Ownship路徑的位置比例 (0.0-1.0)
-        enable_avoidance: 是否啟用避撞邏輯
-    
-    Returns:
-        dict: Ship A的配置
-    """
-    ship_config = create_deterministic_collision_scenario(
-        ship_velocity=ship_velocity,
-        ship_heading=ship_heading,
-        collision_ratio=collision_position,
-        offset=0.0  # 無偏移，直接碰撞路徑
-    )
-    
-    # 更新ship_size參數
-    ship_config['size'] = ship_size
-    
-    if not enable_avoidance:
-        ship_config['max_rate_of_turn'] = [0, 0]  # 禁用轉向來測試碰撞
-    
-    print(f"Ship A配置:")
-    print(f"  位置: [{ship_config['position'][0]:.1f}, {ship_config['position'][1]:.1f}, {ship_config['position'][2]:.1f}]")
-    print(f"  速度: {ship_velocity} m/s")
-    print(f"  航向: {ship_heading}°")
-    print(f"  大小: {ship_size} m")
-    print(f"  避撞: {'啟用' if enable_avoidance else '禁用'}")
-    print(f"  預期碰撞位置: Ownship路徑的{collision_position*100:.0f}%")
-    
-    run_simulation(
-        ownship_config=DEFAULT_OWNSHIP_CONFIG,
-        ship_config=ship_config,
-        goal_config=DEFAULT_GOAL_CONFIG
-    )
+    print(f"=== Collision Prediction Info ===")
+    print(f"Ship A Initial Position: [{initial_pos[0]:.2f}, {initial_pos[1]:.2f}, {initial_pos[2]:.2f}]")
+    print(f"Predicted Collision Point: [{collision_point[0]:.2f}, {collision_point[1]:.2f}, {collision_point[2]:.2f}]")
+    print(f"Predicted Collision Time: {collision_time:.2f}s")
+    print(f"Collision Location: {collision_ratio*100:.1f}% of Ownship Path")
+    print(f"Ship A Motion Type: {ship_config['_collision_info']['motion_type']}")
     
     return ship_config
 
@@ -455,16 +261,22 @@ def adj_ownship_heading_absolute(absolute_bearings, absolute_bearings_difference
     rate_of_turn = ship.rate_of_turn
     max_rate_of_turn = ship.max_rate_of_turn[0]
     current_relative_bearing = get_bearing(ship, target_ship)
-    avoidance_gain = angular_sizes[-1]*2
+    avoidance_gain = angular_sizes[-1] * 10
 
     if len(absolute_bearings_difference) >= 1:
         if abs(absolute_bearings_difference[-1]*delta_time) <= angular_sizes[-1]:
             rounded_rate = np.round(absolute_bearings_difference[-1], 5)
-            if abs(rounded_rate) <= 1e-5:  # True CBDR (bearing rate ≈ 0)
+            if abs(rounded_rate) <= 1e-1:  # True CBDR (bearing rate ≈ 0)
                 if current_relative_bearing < 0:  # Ship is on port side (left)
-                    rate_of_turn = -max_rate_of_turn  # Turn left (negative)
+                    if abs(current_relative_bearing) < 90:
+                        rate_of_turn = -max_rate_of_turn  # Turn left (negative)
+                    else:
+                        rate_of_turn = max_rate_of_turn   # Turn right (positive)
                 else:  # Ship is on starboard side (right)
-                    rate_of_turn = max_rate_of_turn   # Turn right (positive)
+                    if abs(current_relative_bearing) < 90:
+                        rate_of_turn = max_rate_of_turn   # Turn right (positive)
+                    else:
+                        rate_of_turn = -max_rate_of_turn  # Turn left (negative)
             else:
                 # Non-zero bearing rate case
                 if abs(current_relative_bearing) < 90:  # Target is ahead
@@ -583,10 +395,11 @@ def run_single_simulation(use_absolute_bearings=True,
         current_time = step * delta_time
         
         # Check for collision (distance < sum of radii)
-        distance_to_ship = get_distance_3d(ownship.position, ship.position)
+        center_distance = get_distance_3d(ownship.position, ship.position)
         collision_threshold = (ownship.size + ship.size) / 2
+        surface_distance = center_distance - collision_threshold
         
-        if distance_to_ship <= collision_threshold:
+        if center_distance <= collision_threshold:
             collision_time = current_time
             simulation_ended = True
             print(f"Collision detected at time {collision_time:.2f}s!")
@@ -607,11 +420,11 @@ def run_single_simulation(use_absolute_bearings=True,
         absolute_bearing = get_absolute_bearing(ownship, ship)
         angular_size = get_angular_diameter(ownship, ship)
         
-        # Store current measurements
+        # Store current measurements (使用表面距離)
         bearings.append(bearing)
         absolute_bearings.append(absolute_bearing)
         angular_sizes.append(angular_size)
-        distances.append(distance_to_ship)
+        distances.append(surface_distance)
         ownship_velocities.append(ownship.velocity)
         ship_velocities.append(ship.velocity)
         ownship_headings.append(ownship.heading)
@@ -672,8 +485,8 @@ def run_single_simulation(use_absolute_bearings=True,
     }
     
     # Clean up floating point errors
-    result['bearings_difference'][np.abs(result['bearings_difference']) < 1e-10] = 0.0
-    result['absolute_bearings_difference'][np.abs(result['absolute_bearings_difference']) < 1e-10] = 0.0
+    result['bearings_difference'][np.abs(result['bearings_difference']) < 1e-6] = 0.0
+    result['absolute_bearings_difference'][np.abs(result['absolute_bearings_difference']) < 1e-6] = 0.0
     
     return result
 
@@ -685,7 +498,7 @@ def print_simulation_summary(result, method_name=""):
     if result['collision_time'] is not None:
         print(f"❌ COLLISION occurred at {result['collision_time']:.2f}s")
         min_distance = np.min(result['distances'])
-        print(f"   Minimum distance: {min_distance:.3f}m")
+        print(f"   Minimum surface distance: {min_distance:.3f}m")
     elif result['arrival_time'] is not None:
         print(f"✅ GOAL REACHED at {result['arrival_time']:.2f}s")
         final_distance_to_goal = get_distance_3d(result['ownship_positions'][-1], result['goal'].position)
@@ -695,7 +508,7 @@ def print_simulation_summary(result, method_name=""):
         final_distance_to_goal = get_distance_3d(result['ownship_positions'][-1], result['goal'].position)
         min_distance = np.min(result['distances'])
         print(f"   Final distance to goal: {final_distance_to_goal:.3f}m")
-        print(f"   Minimum distance to ship: {min_distance:.3f}m")
+        print(f"   Minimum surface distance to ship: {min_distance:.3f}m")
     
     # Additional statistics
     max_angular_size = np.max(result['angular_sizes'])
@@ -704,7 +517,7 @@ def print_simulation_summary(result, method_name=""):
     
     min_distance = np.min(result['distances'])
     min_distance_time = np.argmin(result['distances']) * result['simulation_time'] / len(result['distances'])
-    print(f"Minimum distance: {min_distance:.3f}m at {min_distance_time:.2f}s")
+    print(f"Minimum surface distance: {min_distance:.3f}m at {min_distance_time:.2f}s")
 
 def plot_results(result, delta_time, title_prefix=""):
     """Plot results in a single 2x4 grid"""
@@ -850,7 +663,7 @@ def plot_all_subplots(result, delta_time, title_prefix=""):
     
     # 4. Distance Plot
     plt.subplot(2, 4, 4)
-    plt.plot(np.arange(len(result['distances'])) * delta_time, result['distances'], label='Distance')
+    plt.plot(np.arange(len(result['distances'])) * delta_time, result['distances'], label='Surface Distance')
     
     min_distance = np.min(result['distances'])
     min_distance_time_index = np.argmin(result['distances'])
@@ -869,8 +682,8 @@ def plot_all_subplots(result, delta_time, title_prefix=""):
                 bbox=dict(boxstyle='round,pad=0.3', facecolor='white', edgecolor='red', alpha=0.8))
     
     plt.xlabel('Time (s)')
-    plt.ylabel('Distance (m)')
-    plt.title(f'{title_prefix}Distance')
+    plt.ylabel('Surface Distance (m)')
+    plt.title(f'{title_prefix}Surface Distance')
     plt.legend()
     plt.grid(True)
     
@@ -1004,86 +817,14 @@ def run_simulation(ownship_config=None, ship_config=None, goal_config=None,
     plot_results(abs_result, delta_time=delta_time, title_prefix="Absolute Bearing Control - ")   
 
 if __name__ == "__main__":
-    # # 測試1: 使用自動生成的碰撞位置
-    # print("=== 測試1: 自動生成碰撞場景 ===")
-    
-    # # 創建會在Ownship路徑40%-60%位置發生碰撞的Ship A配置
-    # auto_collision_ship = create_collision_scenario(
-    #     ship_velocity=2.0,
-    #     ship_heading=180.0,  # 朝南
-    #     ship_rate_of_turn=0,
-    #     ship_size=0.5,
-    #     collision_ratio_range=(0.4, 0.6)
-    # )
-    
-    # print(f"自動生成的Ship A位置: {auto_collision_ship['position']}")
-    
-    # run_simulation(
-    #     ownship_config=DEFAULT_OWNSHIP_CONFIG,
-    #     ship_config=auto_collision_ship,
-    #     goal_config=DEFAULT_GOAL_CONFIG
-    # )
-    
-    # # 測試2: 多個不同的碰撞場景
-    # print("\n=== 測試2: 不同航向的碰撞場景 ===")
-    
-    # # 從東邊來的船 (航向270度 = 朝西)
-    # east_ship = create_collision_scenario(
-    #     ship_velocity=1.5,
-    #     ship_heading=270.0,  # 朝西
-    #     ship_rate_of_turn=0,
-    #     ship_size=0.7,
-    #     collision_ratio_range=(0.45, 0.55)
-    # )
-    
-    # print(f"從東邊來的Ship A位置: {east_ship['position']}")
-    
-    # run_simulation(
-    #     ownship_config=DEFAULT_OWNSHIP_CONFIG,
-    #     ship_config=east_ship,
-    #     goal_config=DEFAULT_GOAL_CONFIG
-    # )
-    
-    # # 測試3: 確定性碰撞場景驗證
-    # print("\n=== 測試3: 確定性碰撞場景 (50%位置, 無偏移) ===")
-    
-    # deterministic_ship = create_deterministic_collision_scenario(
-    #     ship_velocity=2.0,
-    #     ship_heading=180.0,
-    #     collision_ratio=0.5,  # 在路徑50%位置
-    #     offset=0.0  # 無偏移，直接碰撞
-    # )
-    
-    # print(f"確定性Ship A位置: {deterministic_ship['position']}")
-    # print(f"預期碰撞時間: {25.0}s (50m路徑 / 1.0m/s 速度 * 0.5)")
-    
-    # # 暫時關閉避撞邏輯來驗證碰撞計算 (修改rate_of_turn為0)
-    # deterministic_ship['max_rate_of_turn'] = [0, 0]  # 禁用轉向
-    
-    # run_simulation(
-    #     ownship_config=DEFAULT_OWNSHIP_CONFIG,
-    #     ship_config=deterministic_ship,
-    #     goal_config=DEFAULT_GOAL_CONFIG
-    # )
-    
-    # # 測試4: 新的快速測試介面
-    # print("\n=== 測試4: 快速測試介面 ===")
-    # quick_collision_test(
-    #     ship_velocity=2.0,
-    #     ship_heading=180.0,
-    #     ship_size=0.5,
-    #     collision_position=0.5,
-    #     enable_avoidance=True  # 測試避撞系統
-    # )
-
 
     left_turn_ship = create_collision_scenario_with_turning(
         ship_velocity=2.0,
-        ship_heading=90.0,
-        ship_rate_of_turn=-1.0,
-        collision_ratio=0.5
+        ship_heading=-90.0,
+        ship_rate_of_turn=1.0,
+        collision_ratio=0.5,
     )
-
+    left_turn_ship['size'] = 0.5
     run_simulation(
         ownship_config=DEFAULT_OWNSHIP_CONFIG,
         ship_config=left_turn_ship,
