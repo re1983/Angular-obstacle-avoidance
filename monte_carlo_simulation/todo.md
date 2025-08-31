@@ -1,0 +1,3 @@
+我要把這個檔案的涵式放在一個.py裡面，我可以呼叫他來使用就好，令生成一個設定檔.py來設定初始值，我要做蒙地卡羅，需要隨機產生Ship A的路徑，Ownship初始路徑就是出發點到Goal，以等速度直線前進，所以我們應該可以反推會發生碰撞的路徑Ship A的出發點，所以我只要設定Ship A的size，velocity，rate_of_turn，就能算出Ship A出發點，我不希望在靠近Goal或是Ownship出發點附近發生碰撞，在Ownship初始路徑就是出發點到Goal的40%-60%的位置隨機選取碰撞。要可以設定，模擬次數。你可以先寫出一個todo，思考後開始產生code。把這些新的code放在一個新的資料夾(蒙地卡羅模擬 英文)。
+這些模擬可以選擇使用adj_ownship_heading_absolute或是adj_ownship_heading_relative。
+有不清楚的，我們可以討論。
