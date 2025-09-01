@@ -15,7 +15,7 @@ MAX_TIME_STEPS = 30000  # maximum simulation steps (increased for longer simulat
 MAX_SIMULATION_TIME = MAX_TIME_STEPS * DELTA_TIME  # seconds
 
 # Monte Carlo parameters
-NUM_SIMULATIONS = 100  # number of Monte Carlo runs (increased for better statistics)
+NUM_SIMULATIONS = 5  # number of Monte Carlo runs (測試轉彎率功能)
 USE_ABSOLUTE_BEARINGS = True  # True for absolute, False for relative
 
 # Individual trajectory saving options
@@ -29,18 +29,18 @@ SHOW_INDIVIDUAL_PLOTS = False  # Whether to display individual plots (False = sa
 
 # Ownship (fixed parameters - from BearingRateGraph_cleaned.py)
 OWNSHIP_INITIAL_POSITION = [0.0, 0.0, 0.0]  # [North, East, Down]
-OWNSHIP_VELOCITY = 1.0  # m/s (constant)
-OWNSHIP_SIZE = 0.5  # m
+OWNSHIP_VELOCITY = 15.0  # m/s (constant)
+OWNSHIP_SIZE = 2.0  # m
 OWNSHIP_MAX_RATE_OF_TURN = [20.0, 20.0]  # deg/s (original default)
 
 # Goal parameters (from BearingRateGraph_cleaned.py)
-GOAL_POSITION = [50.0, 0.0, 0.0]  # [North, East, Down]
+GOAL_POSITION = [1500.0, 0.0, 0.0]  # [North, East, Down]
 
 # Ship A (randomized parameters - ranges)
-SHIP_A_SIZE_RANGE = [0.5, 2.0]  # [min, max] m
-SHIP_A_VELOCITY_RANGE = [1.5, 3.0]  # [min, max] m/s
+SHIP_A_SIZE_RANGE = [0.5, 3.5]  # [min, max] m
+SHIP_A_VELOCITY_RANGE = [12, 18]  # [min, max] m/s
 SHIP_A_HEADING_RANGE = [0.0, 360.0]  # [min, max] degrees
-SHIP_A_MAX_RATE_OF_TURN = [0.0, 0.0]  # deg/s (fixed) - straight line motion
+SHIP_A_MAX_RATE_OF_TURN = [-3.0, 3.0]  # deg/s (fixed) - straight line motion
 SHIP_A_VELOCITY_LIMIT = [0.5, 10.0]  # [min, max] m/s (original default, not used)
 
 # =============================================================================
@@ -64,7 +64,7 @@ SHIP_A_MAX_SPAWN_DISTANCE = 100.0  # m maximum distance from Ownship path
 # =============================================================================
 
 # Navigation threshold constant (degrees)
-ALPHA_NAV = 1.0  # No collision threat below this angular diameter
+ALPHA_NAV = 0.5  # No collision threat below this angular diameter (增大以容易產生碰撞)
 
 # Collision detection thresholds
 MIN_SAFE_DISTANCE = 2.0  # m minimum safe distance between ships

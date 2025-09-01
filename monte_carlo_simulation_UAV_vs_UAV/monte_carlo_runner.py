@@ -5,6 +5,8 @@ Monte Carlo Simulation Runner for Ship Collision Avoidance
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from matplotlib.patches import FancyArrowPatch
 import os
 import json
 from datetime import datetime
@@ -16,12 +18,10 @@ sys.path.append(str(Path(__file__).parent))
 
 # 導入配置和模擬函數
 from config import *
+
 from BearingRateGraph_comparison import (
-    create_collision_scenario_with_turning,
+    calculate_ship_initial_position_with_turning,
     run_single_simulation,
-    DEFAULT_OWNSHIP_CONFIG,
-    DEFAULT_GOAL_CONFIG,
-    DEFAULT_SIM_PARAMS,
     print_simulation_summary
 )
 
@@ -33,6 +33,35 @@ class MonteCarloRunner:
         self.results_dir = Path(f"results/results_{self.timestamp}")
         self.setup_directories()
         self.simulation_results = []
+        
+        # 從 config 創建 ownship 和 goal 配置
+        self.ownship_config = {
+            "name": "Ownship",
+            "velocity": OWNSHIP_VELOCITY,
+            "acceleration": 0,
+            "heading": 0.0,
+            "rate_of_turn": 0,
+            "position": OWNSHIP_INITIAL_POSITION,
+            "size": OWNSHIP_SIZE,
+            "max_rate_of_turn": OWNSHIP_MAX_RATE_OF_TURN
+        }
+        
+        self.goal_config = {
+            "name": "Goal",
+            "velocity": 0,
+            "acceleration": 0,
+            "heading": 0.0,
+            "rate_of_turn": 0,
+            "position": GOAL_POSITION,
+            "size": 0.1  # 很小的虛擬大小
+        }
+        
+        self.sim_params = {
+            "delta_time": DELTA_TIME,
+            "max_time_steps": MAX_TIME_STEPS,
+            "use_absolute_bearings": USE_ABSOLUTE_BEARINGS,
+            "alpha_nav": ALPHA_NAV
+        }
         
     def setup_directories(self):
         """建立結果目錄結構"""
@@ -59,7 +88,7 @@ class MonteCarloRunner:
             'heading': np.random.uniform(SHIP_A_HEADING_RANGE[0], SHIP_A_HEADING_RANGE[1]),
             'size': np.random.uniform(SHIP_A_SIZE_RANGE[0], SHIP_A_SIZE_RANGE[1]),
             'collision_ratio': np.random.uniform(COLLISION_ZONE_START_RATIO, COLLISION_ZONE_END_RATIO),
-            'rate_of_turn': 0.0  # 目前設為直線運動
+            'rate_of_turn': np.random.uniform(SHIP_A_MAX_RATE_OF_TURN[0], SHIP_A_MAX_RATE_OF_TURN[1])  # 隨機轉彎率
         }
     
     def run_single_monte_carlo(self, sim_id):
@@ -71,21 +100,49 @@ class MonteCarloRunner:
         # 生成隨機參數
         ship_params = self.generate_random_ship_parameters()
         
-        # 創建碰撞場景
-        ship_config = create_collision_scenario_with_turning(
-            ship_velocity=ship_params['velocity'],
-            ship_heading=ship_params['heading'],
-            ship_rate_of_turn=ship_params['rate_of_turn'],
-            ship_size=ship_params['size'],
-            collision_ratio=ship_params['collision_ratio']
+        # 創建碰撞場景（使用正確的 ownship 和 goal 配置）
+        initial_pos, collision_point, collision_time = calculate_ship_initial_position_with_turning(
+            self.ownship_config,
+            self.goal_config,
+            ship_params['velocity'], 
+            ship_params['heading'],
+            ship_params['rate_of_turn'],
+            ship_params['collision_ratio']
         )
+        
+        ship_config = {
+            "name": "Ship A",
+            "velocity": ship_params['velocity'],
+            "acceleration": 0,
+            "heading": ship_params['heading'],
+            "rate_of_turn": ship_params['rate_of_turn'],
+            "position": initial_pos,
+            "size": ship_params['size'],
+            "max_rate_of_turn": [12, 12]
+        }
+        
+        # 添加碰撞預測資訊
+        ship_config["_collision_info"] = {
+            "predicted_collision_point": collision_point,
+            "predicted_collision_time": collision_time,
+            "collision_ratio": ship_params['collision_ratio'],
+            "motion_type": "circular" if abs(ship_params['rate_of_turn']) > 1e-10 else "linear"
+        }
+        
+        # 顯示碰撞預測信息（恢復原本的詳細輸出）
+        print(f"=== Collision Prediction Info ===")
+        print(f"Ship A Initial Position: [{initial_pos[0]:.2f}, {initial_pos[1]:.2f}, {initial_pos[2]:.2f}]")
+        print(f"Predicted Collision Point: [{collision_point[0]:.2f}, {collision_point[1]:.2f}, {collision_point[2]:.2f}]")
+        print(f"Predicted Collision Time: {collision_time:.2f}s")
+        print(f"Collision Location: {ship_params['collision_ratio']*100:.1f}% of Ownship Path")
+        print(f"Ship A Motion Type: {ship_config['_collision_info']['motion_type']}")
         
         # 執行模擬
         result = run_single_simulation(
             use_absolute_bearings=USE_ABSOLUTE_BEARINGS,
-            ownship_config=DEFAULT_OWNSHIP_CONFIG,
+            ownship_config=self.ownship_config,
             ship_config=ship_config,
-            goal_config=DEFAULT_GOAL_CONFIG,
+            goal_config=self.goal_config,
             time_steps=MAX_TIME_STEPS,
             delta_time=DELTA_TIME,
             ALPHA_TRIG=ALPHA_NAV
@@ -131,6 +188,12 @@ class MonteCarloRunner:
         # 決定儲存目錄
         save_dir = self.results_dir / result_type
         
+        # 獲取實際碰撞位置（最小距離點）
+        min_dist_idx = np.argmin(full_result['distances'])
+        actual_collision_ownship_pos = full_result['ownship_positions'][min_dist_idx]
+        actual_collision_ship_pos = full_result['ship_positions'][min_dist_idx]
+        actual_collision_midpoint = (actual_collision_ownship_pos + actual_collision_ship_pos) / 2
+        
         # 儲存參數文件
         param_file = save_dir / f"{sim_id:05d}.txt"
         with open(param_file, 'w', encoding='utf-8') as f:
@@ -138,16 +201,48 @@ class MonteCarloRunner:
             f.write(f"Result Type: {result_type}\n")
             f.write(f"{'='*50}\n\n")
             
+            # Ship A 參數（包含初始位置）
             f.write("Ship A Parameters:\n")
             for key, value in simulation_data['ship_parameters'].items():
                 f.write(f"  {key}: {value}\n")
             
-            f.write(f"\nCollision Prediction:\n")
+            # 從 collision_info 取得初始位置
             collision_info = simulation_data['collision_info']
+            if collision_info and 'predicted_collision_point' in collision_info:
+                # 取得 Ship A 的初始位置（從模擬結果）
+                ship_initial_pos = full_result['ship_positions'][0]
+                f.write(f"  initial_position: [{ship_initial_pos[0]:.3f}, {ship_initial_pos[1]:.3f}, {ship_initial_pos[2]:.3f}]\n")
+            
+            f.write(f"\nCollision Prediction:\n")
             if collision_info:
                 f.write(f"  Predicted collision point: {collision_info.get('predicted_collision_point', 'N/A')}\n")
                 f.write(f"  Predicted collision time: {collision_info.get('predicted_collision_time', 'N/A')}\n")
                 f.write(f"  Motion type: {collision_info.get('motion_type', 'N/A')}\n")
+            
+            # 實際碰撞位置
+            f.write(f"\nActual Collision Location:\n")
+            f.write(f"  Ownship position at min distance: [{actual_collision_ownship_pos[0]:.3f}, {actual_collision_ownship_pos[1]:.3f}, {actual_collision_ownship_pos[2]:.3f}]\n")
+            f.write(f"  Ship A position at min distance: [{actual_collision_ship_pos[0]:.3f}, {actual_collision_ship_pos[1]:.3f}, {actual_collision_ship_pos[2]:.3f}]\n")
+            f.write(f"  Midpoint at min distance: [{actual_collision_midpoint[0]:.3f}, {actual_collision_midpoint[1]:.3f}, {actual_collision_midpoint[2]:.3f}]\n")
+            f.write(f"  Time at min distance: {min_dist_idx * DELTA_TIME:.3f}s\n")
+            
+            # Ownship 配置
+            f.write(f"\nOwnship Configuration:\n")
+            f.write(f"  initial_position: {OWNSHIP_INITIAL_POSITION}\n")
+            f.write(f"  velocity: {OWNSHIP_VELOCITY}\n")
+            f.write(f"  size: {OWNSHIP_SIZE}\n")
+            f.write(f"  max_rate_of_turn: {OWNSHIP_MAX_RATE_OF_TURN}\n")
+            
+            # Goal 配置
+            f.write(f"\nGoal Configuration:\n")
+            f.write(f"  position: {GOAL_POSITION}\n")
+            
+            # 模擬參數
+            f.write(f"\nSimulation Parameters:\n")
+            f.write(f"  delta_time: {DELTA_TIME}\n")
+            f.write(f"  max_time_steps: {MAX_TIME_STEPS}\n")
+            f.write(f"  use_absolute_bearings: {USE_ABSOLUTE_BEARINGS}\n")
+            f.write(f"  alpha_nav: {ALPHA_NAV}\n")
             
             f.write(f"\nSimulation Results:\n")
             for key, value in simulation_data['result'].items():
@@ -156,9 +251,9 @@ class MonteCarloRunner:
         
         # 儲存軌跡圖（如果啟用）
         if SAVE_INDIVIDUAL_TRAJECTORIES:
-            self.save_trajectory_plot(full_result, save_dir / f"{sim_id:05d}.png", sim_id, result_type)
+            self.save_trajectory_plot(full_result, save_dir / f"{sim_id:05d}.png", sim_id, result_type, simulation_data['ship_parameters'])
     
-    def save_trajectory_plot(self, result, filename, sim_id, result_type):
+    def save_trajectory_plot(self, result, filename, sim_id, result_type, ship_params):
         """儲存個別軌跡圖"""
         fig, ax = plt.subplots(figsize=(10, 8))
         
@@ -166,19 +261,23 @@ class MonteCarloRunner:
         ownship_size = result['ownship_size']
         ship_size = result['ship_size']
         
-        # 繪製軌跡（圖例包含物體大小）
+        # 獲取速度信息（用於動態箭頭大小）
+        ownship_velocity = OWNSHIP_VELOCITY
+        ship_velocity = ship_params['velocity']
+        
+        # 繪製軌跡（圖例包含物體大小和速度）
         ax.plot(result['ownship_positions'][:, 1], result['ownship_positions'][:, 0], 
-                'b-', linewidth=1, label=f'Ownship (size: {ownship_size:.1f}m)', alpha=0.8)
+                'b-', linewidth=1, label=f'Ownship (size: {ownship_size:.1f}m, v: {ownship_velocity:.1f}m/s)', alpha=0.8)
         ax.plot(result['ship_positions'][:, 1], result['ship_positions'][:, 0], 
-                'r-', linewidth=1, label=f'Ship A (size: {ship_size:.1f}m)', alpha=0.8)
+                'r-', linewidth=1, label=f'Ship A (size: {ship_size:.1f}m, v: {ship_velocity:.1f}m/s)', alpha=0.8)
         
         # 在軌跡末端添加箭頭
         self.add_trajectory_endpoint_arrows(ax, result['ownship_positions'], 'blue')
         self.add_trajectory_endpoint_arrows(ax, result['ship_positions'], 'red')
         
-        # 添加軌跡箭頭（顯示運動方向
-        self.add_trajectory_arrows(ax, result['ownship_positions'], 'blue')
-        self.add_trajectory_arrows(ax, result['ship_positions'], 'red')
+        # 添加軌跡箭頭（顯示運動方向，使用速度信息自動調整大小）
+        self.add_trajectory_section(ax, result['ownship_positions'], 'blue', ownship_velocity)
+        self.add_trajectory_section(ax, result['ship_positions'], 'red', ship_velocity)
         
         # 標記起始和結束位置（Ownship start改成綠色）
         ax.plot(result['ownship_positions'][0, 1], result['ownship_positions'][0, 0], 
@@ -237,13 +336,105 @@ class MonteCarloRunner:
                        xytext=(end_pos[1], end_pos[0]),
                        arrowprops=dict(arrowstyle='->', color=color, alpha=0.8, lw=1.0))
     
-    def add_trajectory_arrows(self, ax, positions, color):
-        """在軌跡上添加垂直小線段標記（每5秒一個）"""
+    def add_trajectory_arrows_matplotlib_native(self, ax, positions, color, ship_velocity):
+        """使用 matplotlib 原生的 FancyArrowPatch 添加方向箭頭（最佳方案）"""
         if len(positions) < 2:
             return
         
-        # 計算每5秒對應的步數間隔（delta_time = 0.01s）
+        # 計算每5秒對應的步數間隔
+        time_interval_steps = int(5.0 / 0.01)  # 500步
+        
+        # 根據軸的數據範圍和船舶速度自動計算箭頭大小
+        x_range = np.max(positions[:, 1]) - np.min(positions[:, 1])
+        y_range = np.max(positions[:, 0]) - np.min(positions[:, 0])
+        axis_range = max(x_range, y_range)
+        
+        # 動態箭頭長度：結合軸範圍和船舶速度
+        # 基礎長度：軸範圍的1-2%
+        base_length = axis_range * 0.015
+        # 速度調整：速度越快，箭頭越長（但有上下限）
+        velocity_factor = ship_velocity / 10.0  # 10 m/s為基準速度
+        arrow_length = max(5.0, min(80.0, base_length * velocity_factor))
+        
+        # 箭頭頭部大小也根據長度調整
+        head_width = arrow_length * 0.3
+        head_length = arrow_length * 0.2
+        
+        # 在軌跡上每隔指定間隔添加箭頭
+        for i in range(time_interval_steps, len(positions), time_interval_steps):
+            start_pos = positions[i-1]
+            end_pos = positions[i]
+            
+            # 計算方向向量
+            dx = end_pos[1] - start_pos[1]
+            dy = end_pos[0] - start_pos[0]
+            
+            # 檢查是否有足夠的移動
+            movement = np.sqrt(dx**2 + dy**2)
+            if movement < 0.1:  # 太小的移動跳過
+                continue
+            
+            # 標準化方向並應用箭頭長度
+            dx_norm = (dx / movement) * arrow_length
+            dy_norm = (dy / movement) * arrow_length
+            
+            # 使用 FancyArrowPatch 創建箭頭
+            arrow = mpatches.FancyArrowPatch(
+                (start_pos[1], start_pos[0]),
+                (start_pos[1] + dx_norm, start_pos[0] + dy_norm),
+                arrowstyle='->', 
+                color=color, 
+                alpha=0.7,
+                linewidth=1.0,
+                mutation_scale=head_width
+            )
+            ax.add_patch(arrow)
+        
+        # 每隔time_interval_steps個點添加一個箭頭
+        for i in range(0, len(positions) - 1, time_interval_steps):
+            if i + time_interval_steps < len(positions):
+                # 起點和終點
+                start_pos = positions[i]
+                end_pos = positions[i + time_interval_steps]
+                
+                # 計算方向向量
+                dx = end_pos[1] - start_pos[1]  # East
+                dy = end_pos[0] - start_pos[0]  # North
+                length = np.sqrt(dx**2 + dy**2)
+                
+                if length > 0:
+                    # 標準化並縮放到合適的長度
+                    scale = arrow_length / length
+                    dx_scaled = dx * scale
+                    dy_scaled = dy * scale
+                    
+                    # 創建箭頭
+                    arrow = FancyArrowPatch(
+                        (start_pos[1], start_pos[0]),  # (East, North)
+                        (start_pos[1] + dx_scaled, start_pos[0] + dy_scaled),
+                        arrowstyle='->', 
+                        color=color, 
+                        alpha=0.8, 
+                        linewidth=1.5,
+                        mutation_scale=15  # 箭頭頭部大小
+                    )
+                    ax.add_patch(arrow)
+    
+    def add_trajectory_section(self, ax, positions, color, ship_velocity):
+        """在軌跡上添加垂直小線段標記（每5秒一個）- 自動調整長度"""
+        if len(positions) < 2:
+            return
+        
+        # # 計算每5秒對應的步數間隔（delta_time = 0.01s）
         time_interval_steps = int(5.0 / 0.01)  # 5秒 / 0.01秒 = 500步
+        
+        # # 計算軌跡的總範圍來動態調整線段長度
+        # x_range = np.max(positions[:, 1]) - np.min(positions[:, 1])  # East range
+        # y_range = np.max(positions[:, 0]) - np.min(positions[:, 0])  # North range
+        # total_range = max(x_range, y_range)
+        
+        # # 動態線段長度：總範圍的 1-3%，但限制在合理範圍內
+        # line_length = max(5.0, min(100.0, total_range * 0.02))
         
         # 每隔time_interval_steps個點添加一個垂直線段
         for i in range(0, len(positions) - 1, time_interval_steps):
@@ -260,7 +451,7 @@ class MonteCarloRunner:
                     perp_dy = dx / length   # 垂直方向North
                     
                     # 小線段長度
-                    line_length = 0.75
+                    line_length = ship_velocity / 3
                     
                     # 計算線段兩端點
                     center_x = positions[i, 1]

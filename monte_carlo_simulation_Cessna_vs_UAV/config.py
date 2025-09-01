@@ -15,7 +15,7 @@ MAX_TIME_STEPS = 30000  # maximum simulation steps (increased for longer simulat
 MAX_SIMULATION_TIME = MAX_TIME_STEPS * DELTA_TIME  # seconds
 
 # Monte Carlo parameters
-NUM_SIMULATIONS = 100  # number of Monte Carlo runs (increased for better statistics)
+NUM_SIMULATIONS = 5  # number of Monte Carlo runs (increased for better statistics)
 USE_ABSOLUTE_BEARINGS = True  # True for absolute, False for relative
 
 # Individual trajectory saving options
@@ -38,7 +38,7 @@ GOAL_POSITION = [1500.0, 0.0, 0.0]  # [North, East, Down]
 
 # Ship A (randomized parameters - ranges)
 SHIP_A_SIZE_RANGE = [10, 15]  # [min, max] m
-SHIP_A_VELOCITY_RANGE = [60, 66]  # [min, max] m/s
+SHIP_A_VELOCITY_RANGE = [58, 68]  # [min, max] m/s
 SHIP_A_HEADING_RANGE = [0.0, 360.0]  # [min, max] degrees
 SHIP_A_MAX_RATE_OF_TURN = [0.0, 0.0]  # deg/s (fixed) - straight line motion
 SHIP_A_VELOCITY_LIMIT = [0.5, 10.0]  # [min, max] m/s (original default, not used)
@@ -64,7 +64,7 @@ SHIP_A_MAX_SPAWN_DISTANCE = 100.0  # m maximum distance from Ownship path
 # =============================================================================
 
 # Navigation threshold constant (degrees)
-ALPHA_NAV = 1.0  # No collision threat below this angular diameter
+ALPHA_NAV = 0.5 # No collision threat below this angular diameter
 
 # Collision detection thresholds
 MIN_SAFE_DISTANCE = 2.0  # m minimum safe distance between ships

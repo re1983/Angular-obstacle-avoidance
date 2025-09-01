@@ -5,12 +5,12 @@ import math
 # Default simulation parameters
 DEFAULT_OWNSHIP_CONFIG = {
     "name": "Ownship",
-    "velocity": 15,
+    "velocity": 1,
     "acceleration": 0,
     "heading": 0.0,
     "rate_of_turn": 0,
     "position": [0, 0, 0],
-    "size": 2.0,
+    "size": 0.5,
     "max_rate_of_turn": [22, 22]
 }
 
@@ -31,7 +31,7 @@ DEFAULT_GOAL_CONFIG = {
     "acceleration": 0,
     "heading": 0,
     "rate_of_turn": 0,
-    "position": [1500, 0, 0],
+    "position": [50, 0, 0],
     "size": 2.0,
     "max_rate_of_turn": [0, 0]
 }

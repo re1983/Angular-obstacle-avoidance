@@ -47,7 +47,7 @@ class MonteCarloAnalyzer:
         with open(txt_file, 'r', encoding='utf-8') as f:
             for line in f:
                 line = line.strip()
-                if not line:
+                if not line or line.startswith('='):
                     continue
                 
                 if line.startswith('Monte Carlo Simulation #'):
@@ -60,6 +60,18 @@ class MonteCarloAnalyzer:
                 elif line == 'Collision Prediction:':
                     current_section = 'collision_info'
                     data['collision_info'] = {}
+                elif line == 'Actual Collision Location:':
+                    current_section = 'actual_collision'
+                    data['actual_collision'] = {}
+                elif line == 'Ownship Configuration:':
+                    current_section = 'ownship_config'
+                    data['ownship_config'] = {}
+                elif line == 'Goal Configuration:':
+                    current_section = 'goal_config'
+                    data['goal_config'] = {}
+                elif line == 'Simulation Parameters:':
+                    current_section = 'sim_params'
+                    data['sim_params'] = {}
                 elif line == 'Simulation Results:':
                     current_section = 'sim_results'
                     data['sim_results'] = {}
@@ -76,15 +88,30 @@ class MonteCarloAnalyzer:
                             value = True
                         elif value.lower() == 'false':
                             value = False
-                        else:
-                            # 嘗試轉換為數字
-                            if '.' in value:
-                                value = float(value)
+                        elif value.startswith('[') and value.endswith(']'):
+                            # 處理列表格式 [x, y, z]
+                            value = value[1:-1]  # 移除 []
+                            if ',' in value:
+                                # 分割並轉換為數字列表
+                                value = [float(x.strip()) for x in value.split(',')]
                             else:
+                                value = [float(value)]
+                        else:
+                            # 處理帶單位的數值（如 "21.59s"）
+                            if value.endswith('s') and len(value) > 1:
                                 try:
-                                    value = int(value)
+                                    value = float(value[:-1])  # 移除 's' 並轉換為數字
                                 except ValueError:
-                                    pass  # 保持為字符串
+                                    pass
+                            else:
+                                # 嘗試轉換為數字
+                                if '.' in value:
+                                    value = float(value)
+                                else:
+                                    try:
+                                        value = int(value)
+                                    except ValueError:
+                                        pass  # 保持為字符串
                     except:
                         pass
                     
@@ -98,7 +125,7 @@ class MonteCarloAnalyzer:
         plt.rcParams['font.sans-serif'] = ['SimHei', 'DejaVu Sans']
         plt.rcParams['axes.unicode_minus'] = False
         
-        fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+        fig, axes = plt.subplots(3, 3, figsize=(18, 18))  # 改為 3x3 布局
         fig.suptitle(f'Monte Carlo Simulation Overview - {self.timestamp}', fontsize=16)
         
         # 收集所有數據
@@ -171,22 +198,52 @@ class MonteCarloAnalyzer:
             ax4.set_title('Ship A Heading Distribution')
             ax4.grid(True, alpha=0.3)
         
-        # 5. 碰撞位置分布
+        # 5. Ship A 參數分佈 - 轉彎率 (新增)
         ax5 = axes[1, 1]
+        rates_of_turn = []
+        for result in all_results:
+            if 'ship_params' in result and 'rate_of_turn' in result['ship_params']:
+                rates_of_turn.append(result['ship_params']['rate_of_turn'])
+        
+        if rates_of_turn:
+            ax5.hist(rates_of_turn, bins=15, alpha=0.7, edgecolor='black', color='orange')
+            ax5.axvline(0, color='red', linestyle='--', alpha=0.8, label='Straight Line')
+            ax5.set_xlabel('Ship A Rate of Turn (°/s)')
+            ax5.set_ylabel('Frequency')
+            ax5.set_title('Ship A Rate of Turn Distribution')
+            ax5.legend()
+            ax5.grid(True, alpha=0.3)
+        
+        # 6. 碰撞位置分布
+        ax6 = axes[1, 2]
         collision_ratios = []
         for result in all_results:
             if 'ship_params' in result and 'collision_ratio' in result['ship_params']:
                 collision_ratios.append(result['ship_params']['collision_ratio'] * 100)  # 轉換為百分比
         
         if collision_ratios:
-            ax5.hist(collision_ratios, bins=10, alpha=0.7, edgecolor='black', color='coral')
-            ax5.set_xlabel('Collision Location (% of Ownship Path)')
-            ax5.set_ylabel('Frequency')
-            ax5.set_title('Collision Location Distribution')
-            ax5.grid(True, alpha=0.3)
+            ax6.hist(collision_ratios, bins=10, alpha=0.7, edgecolor='black', color='coral')
+            ax6.set_xlabel('Collision Location (% of Ownship Path)')
+            ax6.set_ylabel('Frequency')
+            ax6.set_title('Collision Location Distribution')
+            ax6.grid(True, alpha=0.3)
         
-        # 6. 結果類型vs最小距離的散點圖
-        ax6 = axes[1, 2]
+        # 7. Ship A 大小分布
+        ax7 = axes[2, 0]
+        sizes = []
+        for result in all_results:
+            if 'ship_params' in result and 'size' in result['ship_params']:
+                sizes.append(result['ship_params']['size'])
+        
+        if sizes:
+            ax7.hist(sizes, bins=10, alpha=0.7, edgecolor='black', color='purple')
+            ax7.set_xlabel('Ship A Size (m)')
+            ax7.set_ylabel('Frequency')
+            ax7.set_title('Ship A Size Distribution')
+            ax7.grid(True, alpha=0.3)
+        
+        # 8. 結果類型vs最小距離的散點圖
+        ax8 = axes[2, 1]
         result_types = []
         min_dists_scatter = []
         colors_scatter = []
@@ -203,13 +260,35 @@ class MonteCarloAnalyzer:
             type_to_num = {'successful': 2, 'timeout': 1, 'collision': 0}
             y_values = [type_to_num[rt] for rt in result_types]
             
-            ax6.scatter(min_dists_scatter, y_values, c=colors_scatter, alpha=0.7, s=50)
-            ax6.set_xlabel('Minimum Distance (m)')
-            ax6.set_ylabel('Result Type')
-            ax6.set_yticks([0, 1, 2])
-            ax6.set_yticklabels(['Collision', 'Timeout', 'Successful'])
-            ax6.set_title('Result Type vs Minimum Distance')
-            ax6.grid(True, alpha=0.3)
+            ax8.scatter(min_dists_scatter, y_values, c=colors_scatter, alpha=0.7, s=50)
+            ax8.set_xlabel('Minimum Distance (m)')
+            ax8.set_ylabel('Result Type')
+            ax8.set_yticks([0, 1, 2])
+            ax8.set_yticklabels(['Collision', 'Timeout', 'Successful'])
+            ax8.set_title('Result Type vs Minimum Distance')
+            ax8.grid(True, alpha=0.3)
+        
+        # 9. 轉彎率 vs 最小距離散點圖 (新增)
+        ax9 = axes[2, 2]
+        turn_rates_scatter = []
+        min_dists_vs_turn = []
+        colors_vs_turn = []
+        
+        for result in all_results:
+            if ('ship_params' in result and 'rate_of_turn' in result['ship_params'] and 
+                'sim_results' in result and 'min_distance' in result['sim_results']):
+                turn_rates_scatter.append(result['ship_params']['rate_of_turn'])
+                min_dists_vs_turn.append(result['sim_results']['min_distance'])
+                colors_vs_turn.append(color_map.get(result['result_type'], 'gray'))
+        
+        if turn_rates_scatter:
+            ax9.scatter(turn_rates_scatter, min_dists_vs_turn, c=colors_vs_turn, alpha=0.7, s=50)
+            ax9.axvline(0, color='red', linestyle='--', alpha=0.5, label='Straight Line')
+            ax9.set_xlabel('Ship A Rate of Turn (°/s)')
+            ax9.set_ylabel('Minimum Distance (m)')
+            ax9.set_title('Turn Rate vs Minimum Distance')
+            ax9.legend()
+            ax9.grid(True, alpha=0.3)
         
         plt.tight_layout()
         
@@ -282,6 +361,24 @@ class MonteCarloAnalyzer:
             info_parts.append(f"Velocity: {ship_params.get('velocity', 'N/A'):.2f} m/s")
             info_parts.append(f"Heading: {ship_params.get('heading', 'N/A'):.1f}°")
             info_parts.append(f"Size: {ship_params.get('size', 'N/A'):.2f} m")
+            
+            # 顯示轉彎率
+            rate_of_turn = ship_params.get('rate_of_turn', 0.0)
+            if abs(rate_of_turn) < 0.01:
+                info_parts.append("Motion: Straight line")
+            else:
+                direction = "Right" if rate_of_turn > 0 else "Left"
+                info_parts.append(f"Turn Rate: {abs(rate_of_turn):.2f}°/s ({direction})")
+            
+            if 'initial_position' in ship_params:
+                pos = ship_params['initial_position']
+                if isinstance(pos, list) and len(pos) >= 2:
+                    info_parts.append(f"Initial: ({pos[0]:.1f}, {pos[1]:.1f})")
+        
+        if 'actual_collision' in sample:
+            actual = sample['actual_collision']
+            if 'Time at min distance' in actual:
+                info_parts.append(f"Min Dist Time: {actual['Time at min distance']:.1f}s")
         
         if 'sim_results' in sample:
             sim_results = sample['sim_results']
@@ -328,12 +425,66 @@ class MonteCarloAnalyzer:
                          if 'ship_params' in r and 'velocity' in r['ship_params']]
             headings = [r['ship_params']['heading'] for r in all_results 
                        if 'ship_params' in r and 'heading' in r['ship_params']]
+            sizes = [r['ship_params']['size'] for r in all_results 
+                    if 'ship_params' in r and 'size' in r['ship_params']]
+            rates_of_turn = [r['ship_params']['rate_of_turn'] for r in all_results 
+                           if 'ship_params' in r and 'rate_of_turn' in r['ship_params']]
             
             if velocities:
                 print(f"\nShip A Parameter Statistics:")
                 print(f"  Velocity - Mean: {np.mean(velocities):.2f} m/s, Std: {np.std(velocities):.2f} m/s")
+                print(f"           - Range: {np.min(velocities):.2f} - {np.max(velocities):.2f} m/s")
             if headings:
                 print(f"  Heading  - Mean: {np.mean(headings):.1f}°, Std: {np.std(headings):.1f}°")
+                print(f"           - Range: {np.min(headings):.1f}° - {np.max(headings):.1f}°")
+            if sizes:
+                print(f"  Size     - Mean: {np.mean(sizes):.2f} m, Std: {np.std(sizes):.2f} m")
+                print(f"           - Range: {np.min(sizes):.2f} - {np.max(sizes):.2f} m")
+            if rates_of_turn:
+                print(f"  Rate of Turn - Mean: {np.mean(rates_of_turn):.2f}°/s, Std: {np.std(rates_of_turn):.2f}°/s")
+                print(f"               - Range: {np.min(rates_of_turn):.2f}° - {np.max(rates_of_turn):.2f}°/s")
+                # 統計直線運動的比例
+                straight_line_count = sum(1 for rot in rates_of_turn if abs(rot) < 0.01)
+                print(f"               - Straight line motion: {straight_line_count}/{len(rates_of_turn)} ({straight_line_count/len(rates_of_turn)*100:.1f}%)")
+            
+            # 新增：實際碰撞位置統計
+            collision_times = [r['actual_collision']['Time at min distance'] for r in all_results 
+                             if 'actual_collision' in r and 'Time at min distance' in r['actual_collision']]
+            
+            if collision_times:
+                print(f"\nActual Collision Location Statistics:")
+                print(f"  Time at min distance - Mean: {np.mean(collision_times):.2f}s, Std: {np.std(collision_times):.2f}s")
+                print(f"                       - Range: {np.min(collision_times):.2f}s - {np.max(collision_times):.2f}s")
+            
+            # 新增：配置信息摘要
+            if all_results and 'sim_params' in all_results[0]:
+                sim_params = all_results[0]['sim_params']
+                print(f"\nSimulation Configuration:")
+                print(f"  Delta time: {sim_params.get('delta_time', 'N/A')}s")
+                print(f"  Max time steps: {sim_params.get('max_time_steps', 'N/A')}")
+                print(f"  Use absolute bearings: {sim_params.get('use_absolute_bearings', 'N/A')}")
+                print(f"  Alpha nav: {sim_params.get('alpha_nav', 'N/A')}")
+            
+            if all_results and 'ownship_config' in all_results[0]:
+                ownship_config = all_results[0]['ownship_config']
+                print(f"\nOwnship Configuration:")
+                print(f"  Velocity: {ownship_config.get('velocity', 'N/A')} m/s")
+                print(f"  Size: {ownship_config.get('size', 'N/A')} m")
+                if 'max_rate_of_turn' in ownship_config:
+                    rot = ownship_config['max_rate_of_turn']
+                    if isinstance(rot, list) and len(rot) >= 2:
+                        print(f"  Max rate of turn: [{rot[0]}, {rot[1]}] deg/s")
+                    else:
+                        print(f"  Max rate of turn: {rot}")
+            
+            if all_results and 'goal_config' in all_results[0]:
+                goal_config = all_results[0]['goal_config']
+                if 'position' in goal_config:
+                    pos = goal_config['position']
+                    if isinstance(pos, list) and len(pos) >= 2:
+                        print(f"\nGoal Position: ({pos[0]}, {pos[1]}, {pos[2] if len(pos) > 2 else 0})")
+                    else:
+                        print(f"\nGoal Position: {pos}")
 
 def main():
     """主函數 - 分析最新的結果"""

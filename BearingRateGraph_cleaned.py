@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import math
 
 # Navigation threshold constant (degrees)
-ALPHA_NAV = 2.0  # No collision threat below this angular diameter
+ALPHA_NAV = 0.5  # No collision threat below this angular diameter
 
 class ShipStatus:
     def __init__(self, name, velocity, acceleration, heading, rate_of_turn, position, size=1.0, max_rate_of_turn=[12, 12], velocity_limit=[0.5, 10.0]):
@@ -98,31 +98,27 @@ def adj_ownship_heading(absolute_bearings, absolute_bearings_difference, angular
     rate_of_turn = ship.rate_of_turn
     max_rate_of_turn = ship.max_rate_of_turn[0]
     current_relative_bearing = get_bearing(ship, target_ship)
-    avoidance_gain = angular_sizes[-1]**2  # Use angular size as urgency factor
+    avoidance_gain = angular_sizes[-1]*20  # Use angular size as urgency factor
 
     if len(absolute_bearings_difference) >= 1:
-        
         if abs(absolute_bearings_difference[-1]*delta_time) <= angular_sizes[-1]:
-
             rounded_rate = np.round(absolute_bearings_difference[-1], 5)
-            if abs(rounded_rate) <= 1e-5:  # True CBDR (bearing rate ≈ 0)
-                # Turn away from ship based on its relative position
+            if abs(rounded_rate) <= 1e-1:  # True CBDR (bearing rate ≈ 0)
                 if current_relative_bearing < 0:  # Ship is on port side (left)
-                    rate_of_turn = -max_rate_of_turn  # Turn left (negative)
+                    if abs(current_relative_bearing) < 90:
+                        rate_of_turn = -max_rate_of_turn  # Turn left (negative)
+                    else:
+                        rate_of_turn = max_rate_of_turn   # Turn right (positive)
                 else:  # Ship is on starboard side (right)
-                    rate_of_turn = max_rate_of_turn   # Turn right (positive)
-                
+                    if abs(current_relative_bearing) < 90:
+                        rate_of_turn = max_rate_of_turn   # Turn right (positive)
+                    else:
+                        rate_of_turn = -max_rate_of_turn  # Turn left (negative)
             else:
-                # Non-zero bearing rate case - use original logic
-                # Determine turn direction based on relative bearing
-                # relative_bearing range: -180° to +180°
-                # Front sector: -90° to +90° (abs(relative_bearing) <= 90°)
-                # Rear sector: +90° to +180° and -90° to -180° (abs(relative_bearing) > 90°)
-                if abs(current_relative_bearing) < 90:  # Target is ahead (front 180° sector)
-                    # Target ahead: turn opposite to absolute bearing rate direction to accelerate avoidance
+                # Non-zero bearing rate case
+                if abs(current_relative_bearing) < 90:  # Target is ahead
                     rate_of_turn = -np.sign(absolute_bearings_difference[-1]) * avoidance_gain
-                else:  # Target is behind (rear 180° sector)
-                    # Target behind: turn same direction as absolute bearing rate
+                else:  # Target is behind
                     rate_of_turn = np.sign(absolute_bearings_difference[-1]) * avoidance_gain
 
         if  angular_sizes[-1] < ALPHA_NAV:
@@ -140,9 +136,9 @@ def adj_ownship_heading(absolute_bearings, absolute_bearings_difference, angular
 
 def run_simulation():
     # Initialize ownship and target ship statuses
-    ownship = ShipStatus("Ownship", velocity=1.0, acceleration=0, heading=0, rate_of_turn=0, position=[0, 0, 0], size=0.5)
+    ownship = ShipStatus("Ownship", velocity=1.0, acceleration=0, heading=0, rate_of_turn=20.0, position=[0, 0, 0], size=0.5)
     # Target ship (Ship A) with initial position and velocity
-    ship = ShipStatus("Ship A", velocity=1.0, acceleration=0, heading=180.0, rate_of_turn=0, position=[50, 0, 0], size=0.5)
+    ship = ShipStatus("Ship A", velocity=2.458841155519326, acceleration=0, heading=179.93060787013172, rate_of_turn=0, position=[50, 0, 0], size=1.7427153020769242)
     # Goal ship for navigation
     goal = ShipStatus("Goal", velocity=0.0, acceleration=0, heading=0, rate_of_turn=0, position=[50, 0, 0])
     time_steps = 5000
