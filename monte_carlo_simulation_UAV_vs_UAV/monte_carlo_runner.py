@@ -83,6 +83,8 @@ class MonteCarloRunner:
         if RANDOM_SEED is not None:
             np.random.seed(RANDOM_SEED)
         
+        print(f"Random seed set to: {RANDOM_SEED}")
+        
         return {
             'velocity': np.random.uniform(SHIP_A_VELOCITY_RANGE[0], SHIP_A_VELOCITY_RANGE[1]),
             'heading': np.random.uniform(SHIP_A_HEADING_RANGE[0], SHIP_A_HEADING_RANGE[1]),
@@ -251,9 +253,16 @@ class MonteCarloRunner:
         
         # 儲存軌跡圖（如果啟用）
         if SAVE_INDIVIDUAL_TRAJECTORIES:
-            self.save_trajectory_plot(full_result, save_dir / f"{sim_id:05d}.png", sim_id, result_type, simulation_data['ship_parameters'])
+            self.save_trajectory_plot(
+                full_result,
+                save_dir / f"{sim_id:05d}.png",
+                sim_id,
+                result_type,
+                simulation_data['ship_parameters'],
+                simulation_data.get('collision_info')
+            )
     
-    def save_trajectory_plot(self, result, filename, sim_id, result_type, ship_params):
+    def save_trajectory_plot(self, result, filename, sim_id, result_type, ship_params, collision_info=None):
         """儲存個別軌跡圖"""
         fig, ax = plt.subplots(figsize=(10, 8))
         
@@ -271,6 +280,26 @@ class MonteCarloRunner:
         ax.plot(result['ship_positions'][:, 1], result['ship_positions'][:, 0], 
                 'r-', linewidth=1, label=f'Ship A (size: {ship_size:.1f}m, v: {ship_velocity:.1f}m/s)', alpha=0.8)
         
+        # 在預測碰撞點畫一個紅色 X 標記
+        if collision_info and 'predicted_collision_point' in collision_info and collision_info['predicted_collision_point'] is not None:
+            try:
+                p = collision_info['predicted_collision_point']
+                # 轉為 (East, North) => (x, y)
+                px_east = p[1]
+                py_north = p[0]
+                ax.plot(
+                    px_east,
+                    py_north,
+                    marker='x',
+                    color='red',
+                    markersize=10,
+                    markeredgewidth=2,
+                    linestyle='None',
+                    label='No-Action Collision Point'
+                )
+            except Exception:
+                pass
+
         # 在軌跡末端添加箭頭
         self.add_trajectory_endpoint_arrows(ax, result['ownship_positions'], 'blue')
         self.add_trajectory_endpoint_arrows(ax, result['ship_positions'], 'red')
@@ -282,8 +311,13 @@ class MonteCarloRunner:
         # 標記起始和結束位置（Ownship start改成綠色）
         ax.plot(result['ownship_positions'][0, 1], result['ownship_positions'][0, 0], 
                 'bo', markersize=5, label='Ownship Start')
-        ax.plot(result['ship_positions'][0, 1], result['ship_positions'][0, 0], 
-                'ro', markersize=5, label='Ship A Start')
+        ax.plot(
+            result['ship_positions'][0, 1],
+            result['ship_positions'][0, 0],
+            'ro',
+            markersize=5,
+            label=f"Ship A Start (rate turn: {ship_params.get('rate_of_turn', 0.0):.2f} deg/s)"
+        )
         ax.plot(result['goal'].position[1], result['goal'].position[0], 
                 'g*', markersize=10, label='Goal')
         

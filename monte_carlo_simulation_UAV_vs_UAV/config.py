@@ -11,11 +11,11 @@ import numpy as np
 
 # Time parameters (from BearingRateGraph_cleaned.py defaults)
 DELTA_TIME = 0.01  # seconds
-MAX_TIME_STEPS = 30000  # maximum simulation steps (increased for longer simulations)
+MAX_TIME_STEPS = 50000  # maximum simulation steps (increased for longer simulations)
 MAX_SIMULATION_TIME = MAX_TIME_STEPS * DELTA_TIME  # seconds
 
 # Monte Carlo parameters
-NUM_SIMULATIONS = 5  # number of Monte Carlo runs (測試轉彎率功能)
+NUM_SIMULATIONS = 100  # number of Monte Carlo runs 
 USE_ABSOLUTE_BEARINGS = True  # True for absolute, False for relative
 
 # Individual trajectory saving options
@@ -39,7 +39,7 @@ GOAL_POSITION = [1500.0, 0.0, 0.0]  # [North, East, Down]
 # Ship A (randomized parameters - ranges)
 SHIP_A_SIZE_RANGE = [0.5, 3.5]  # [min, max] m
 SHIP_A_VELOCITY_RANGE = [12, 18]  # [min, max] m/s
-SHIP_A_HEADING_RANGE = [0.0, 360.0]  # [min, max] degrees
+SHIP_A_HEADING_RANGE = [0.0, 90.0]  # [min, max] degrees
 SHIP_A_MAX_RATE_OF_TURN = [-3.0, 3.0]  # deg/s (fixed) - straight line motion
 SHIP_A_VELOCITY_LIMIT = [0.5, 10.0]  # [min, max] m/s (original default, not used)
 
@@ -48,8 +48,8 @@ SHIP_A_VELOCITY_LIMIT = [0.5, 10.0]  # [min, max] m/s (original default, not use
 # =============================================================================
 
 # Collision zone along Ownship's path (as percentage of total distance)
-COLLISION_ZONE_START_RATIO = 0.4  # 40% of the way to goal
-COLLISION_ZONE_END_RATIO = 0.6    # 60% of the way to goal
+COLLISION_ZONE_START_RATIO = 0.45  # % of the way to goal
+COLLISION_ZONE_END_RATIO = 0.55    # % of the way to goal
 
 # Exclusion zones (distances from start/goal to avoid collisions)
 START_EXCLUSION_DISTANCE = 5.0  # m from Ownship start position

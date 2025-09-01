@@ -230,3 +230,6 @@ lyapunov_analysis/latex/*.vrb
 *.bak
 *.backup
 *~
+
+# results
+monte_carlo_simulation_UAV_vs_UAV/results
