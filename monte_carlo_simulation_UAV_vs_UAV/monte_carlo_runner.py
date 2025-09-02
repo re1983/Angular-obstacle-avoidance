@@ -12,6 +12,7 @@ import json
 from datetime import datetime
 import sys
 from pathlib import Path
+import time
 
 # 添加當前目錄到 Python 路徑
 sys.path.append(str(Path(__file__).parent))
@@ -62,6 +63,20 @@ class MonteCarloRunner:
             "use_absolute_bearings": USE_ABSOLUTE_BEARINGS,
             "alpha_nav": ALPHA_NAV
         }
+
+    @staticmethod
+    def compute_alpha_trigger_distance(ship_size_m: float, alpha_deg: float) -> float:
+        """由角徑閾值與目標尺寸推回觸發距離（中心距離）。
+        角徑公式：alpha = 2 * atan(size / (2*d)) => d = size / (2 * tan(alpha/2)).
+        若 alpha<=0 則回傳 0（不過濾）。
+        """
+        if alpha_deg is None or alpha_deg <= 0:
+            return 0.0
+        alpha_rad = np.radians(alpha_deg)
+        denom = np.tan(alpha_rad / 2.0)
+        if abs(denom) < 1e-12:
+            return float('inf')
+        return ship_size_m / (2.0 * denom)
         
     def setup_directories(self):
         """建立結果目錄結構"""
@@ -99,18 +114,48 @@ class MonteCarloRunner:
         print(f"Monte Carlo Simulation #{sim_id:05d}")
         print(f"{'='*60}")
         
-        # 生成隨機參數
-        ship_params = self.generate_random_ship_parameters()
-        
-        # 創建碰撞場景（使用正確的 ownship 和 goal 配置）
-        initial_pos, collision_point, collision_time = calculate_ship_initial_position_with_turning(
-            self.ownship_config,
-            self.goal_config,
-            ship_params['velocity'], 
-            ship_params['heading'],
-            ship_params['rate_of_turn'],
-            ship_params['collision_ratio']
-        )
+        # 生成隨機參數，若 Ship A 初始位置太靠近 Ownship 則重抽參數
+        max_attempts = 50
+        attempt = 0
+        while True:
+            attempt += 1
+            ship_params = self.generate_random_ship_parameters()
+
+            # 創建碰撞場景（使用正確的 ownship 和 goal 配置）
+            initial_pos, collision_point, collision_time = calculate_ship_initial_position_with_turning(
+                self.ownship_config,
+                self.goal_config,
+                ship_params['velocity'], 
+                ship_params['heading'],
+                ship_params['rate_of_turn'],
+                ship_params['collision_ratio']
+            )
+
+            # 以角徑閾值估算觸發距離；若初始中心距離小於該距離（或最小生成距離）則跳過
+            ownship_start = np.array(self.ownship_config["position"], dtype=float)
+            ship_start = np.array(initial_pos, dtype=float)
+            center_distance = float(np.linalg.norm(ship_start - ownship_start))
+
+            alpha_trigger_d = self.compute_alpha_trigger_distance(ship_params['size'], ALPHA_NAV)
+            required_min_d = max(alpha_trigger_d, SHIP_A_MIN_SPAWN_DISTANCE)
+
+            if center_distance < required_min_d:
+                print(
+                    f"Skip init too close: d={center_distance:.2f} < min={required_min_d:.2f} "
+                    f"(alpha-trigger={alpha_trigger_d:.2f}, min_spawn={SHIP_A_MIN_SPAWN_DISTANCE:.2f}) "
+                    f"[attempt {attempt}/{max_attempts}]"
+                )
+                if attempt >= max_attempts:
+                    print("[警告] 多次嘗試仍過近，放寬條件僅使用最小生成距離判定。")
+                    # 只用最小生成距離再判一次，若仍過近就接受（避免無限循環）
+                    if center_distance >= SHIP_A_MIN_SPAWN_DISTANCE:
+                        break
+                    else:
+                        print("[警告] 距離仍過近，接受當前樣本以不中止批次（後續統計可剔除）。")
+                        break
+                continue
+            else:
+                break
         
         ship_config = {
             "name": "Ship A",
@@ -602,8 +647,15 @@ def main():
     print("=" * 50)
     
     # 創建並執行模擬
+    start_ts = time.perf_counter()
     runner = MonteCarloRunner()
     runner.run_monte_carlo_batch()
+    elapsed = time.perf_counter() - start_ts
+    count = len(runner.simulation_results)
+    print("=" * 50)
+    print(f"Total elapsed time: {elapsed:.2f}s")
+    if count > 0:
+        print(f"Average per simulation: {elapsed / count:.2f}s ({count} runs)")
 
 if __name__ == "__main__":
     main()
