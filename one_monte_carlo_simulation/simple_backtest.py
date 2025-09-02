@@ -12,7 +12,6 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 
 from BearingRateGraph_comparison import (
-    create_collision_scenario_with_turning,
     run_single_simulation,
     plot_results
 )
@@ -131,19 +130,37 @@ def backtest_single_case(txt_file, show_plot=True):
         "heading": 0,
         "rate_of_turn": 0,
         "position": goal_config.get('position', [50, 0, 0]),
-        "size": 0.5,
+    # 與原蒙地卡羅一致（0.1m）
+    "size": 0.1,
         "max_rate_of_turn": [0, 0]
     }
     
-    # 重新創建場景並運行（使用txt文件中的參數）
+    # 用結果檔的初始位置直接重建 Ship A（避免再次推回造成誤差）
     print(f"\n重新運行模擬...")
-    ship_config = create_collision_scenario_with_turning(
-        ship_velocity=ship_params['velocity'],
-        ship_heading=ship_params['heading'], 
-        ship_rate_of_turn=ship_params.get('rate_of_turn', 0.0),
-        ship_size=ship_params['size'],
-        collision_ratio=ship_params['collision_ratio']
-    )
+    ship_initial_pos = ship_params.get('initial_position')
+    if ship_initial_pos is None:
+        # 若舊檔案沒有 initial_position，就退回用原本方法推回（可能有偏差）
+        print("[警告] 結果檔缺少 initial_position，將以 collision_ratio 反推初始位置（可能與原始不完全一致）")
+        # 延用原流程需要的函式，但此處僅在缺少 initial_position 時才嘗試
+        from BearingRateGraph_comparison import create_collision_scenario_with_turning
+        ship_config = create_collision_scenario_with_turning(
+            ship_velocity=ship_params['velocity'],
+            ship_heading=ship_params['heading'], 
+            ship_rate_of_turn=ship_params.get('rate_of_turn', 0.0),
+            ship_size=ship_params['size'],
+            collision_ratio=ship_params['collision_ratio']
+        )
+    else:
+        ship_config = {
+            "name": "Ship A",
+            "velocity": ship_params['velocity'],
+            "acceleration": 0.0,
+            "heading": ship_params['heading'],
+            "rate_of_turn": ship_params.get('rate_of_turn', 0.0),
+            "position": ship_initial_pos,  # 直接採用結果檔中的初始位置
+            "size": ship_params['size'],
+            "max_rate_of_turn": [12, 12]
+        }
     
     result = run_single_simulation(
         use_absolute_bearings=sim_params.get('use_absolute_bearings', True),
@@ -154,6 +171,24 @@ def backtest_single_case(txt_file, show_plot=True):
         delta_time=sim_params.get('delta_time', 0.01), 
         ALPHA_TRIG=sim_params.get('alpha_nav', 1.0)
     )
+
+    # 驗證初始位置是否吻合
+    try:
+        sim_ship_start = result['ship_positions'][0]
+        sim_ownship_start = result['ownship_positions'][0]
+        print("\n🔎 初始位置檢查:")
+        print(f"  Ship A start (sim): [{sim_ship_start[0]:.6f}, {sim_ship_start[1]:.6f}, {sim_ship_start[2]:.6f}]")
+        if ship_params.get('initial_position') is not None:
+            ip = ship_params['initial_position']
+            print(f"  Ship A start (txt):  [{ip[0]:.6f}, {ip[1]:.6f}, {ip[2]:.6f}]")
+            diff = np.linalg.norm(np.array(sim_ship_start) - np.array(ip))
+            print(f"  差異(Ship A): {diff:.9f} m")
+        print(f"  Ownship start (sim): [{sim_ownship_start[0]:.6f}, {sim_ownship_start[1]:.6f}, {sim_ownship_start[2]:.6f}]")
+        if ownship_config.get('initial_position') is not None:
+            op = ownship_config['initial_position']
+            print(f"  Ownship start (txt): [{op[0]:.6f}, {op[1]:.6f}, {op[2]:.6f}]")
+    except Exception as _:
+        pass
     
     # 比較結果
     print(f"\n✅ 重測結果:")
