@@ -39,7 +39,7 @@ GOAL_POSITION = [1500.0, 0.0, 0.0]  # [North, East, Down]
 # Ship A (randomized parameters - ranges)
 SHIP_A_SIZE_RANGE = [1.0, 3.0]  # [min, max] m
 SHIP_A_VELOCITY_RANGE = [12, 18]  # [min, max] m/s
-SHIP_A_HEADING_RANGE = [0.0, 360.0]  # [min, max] degrees
+SHIP_A_HEADING_RANGE = [-180.0, 180.0]  # [min, max] degrees
 SHIP_A_MAX_RATE_OF_TURN = [0.0, 0.0]  # deg/s (fixed) - straight line motion
 SHIP_A_VELOCITY_LIMIT = [0.5, 10.0]  # [min, max] m/s (original default, not used)
 
