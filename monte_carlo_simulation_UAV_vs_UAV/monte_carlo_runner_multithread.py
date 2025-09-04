@@ -64,6 +64,70 @@ def _generate_random_ship_parameters(seed: int | None):
         'rate_of_turn': np.random.uniform(SHIP_A_MAX_RATE_OF_TURN[0], SHIP_A_MAX_RATE_OF_TURN[1])
     }
 
+def _add_trajectory_endpoint_arrows(ax, positions, color):
+    """在軌跡末端添加箭頭"""
+    if len(positions) < 2:
+        return
+        
+    # 計算末端方向向量
+    end_pos = positions[-1]
+    prev_pos = positions[-2]
+    
+    dx = end_pos[1] - prev_pos[1]  # East direction
+    dy = end_pos[0] - prev_pos[0]  # North direction
+    
+    # 標準化向量長度
+    length = np.sqrt(dx**2 + dy**2)
+    if length > 0:
+        # 箭頭長度設為1個單位
+        arrow_length = 1.0
+        dx_norm = dx / length * arrow_length
+        dy_norm = dy / length * arrow_length
+        
+        # 在軌跡末端添加箭頭
+        ax.annotate('', 
+                   xy=(end_pos[1] + dx_norm, end_pos[0] + dy_norm),
+                   xytext=(end_pos[1], end_pos[0]),
+                   arrowprops=dict(arrowstyle='->', color=color, alpha=0.8, lw=1.0))
+
+def _add_trajectory_section(ax, positions, color, ship_velocity):
+    """在軌跡上添加垂直小線段標記（每5秒一個）- 自動調整長度"""
+    if len(positions) < 2:
+        return
+    
+    # 計算每5秒對應的步數間隔（delta_time = 0.01s）
+    time_interval_steps = int(5.0 / 0.01)  # 5秒 / 0.01秒 = 500步
+    
+    # 每隔time_interval_steps個點添加一個垂直線段
+    for i in range(0, len(positions) - 1, time_interval_steps):
+        if i + 1 < len(positions):
+            # 計算軌跡方向向量
+            dx = positions[i + 1, 1] - positions[i, 1]  # East direction
+            dy = positions[i + 1, 0] - positions[i, 0]  # North direction
+            
+            # 標準化方向向量
+            length = np.sqrt(dx**2 + dy**2)
+            if length > 0:
+                # 計算垂直向量（逆時針旋轉90度）
+                perp_dx = -dy / length  # 垂直方向East
+                perp_dy = dx / length   # 垂直方向North
+                
+                # 小線段長度
+                line_length = ship_velocity / 3
+                
+                # 計算線段兩端點
+                center_x = positions[i, 1]
+                center_y = positions[i, 0]
+                
+                start_x = center_x - perp_dx * line_length / 2
+                start_y = center_y - perp_dy * line_length / 2
+                end_x = center_x + perp_dx * line_length / 2
+                end_y = center_y + perp_dy * line_length / 2
+                
+                # 繪製垂直小線段
+                ax.plot([start_x, end_x], [start_y, end_y], 
+                        color=color, linewidth=1, alpha=1.0)
+
 def _save_individual_result(results_dir: str, sim_id: int, result_type: str, simulation_data: dict, full_result: dict):
     save_dir = Path(results_dir) / result_type
     # Extract min-distance index
@@ -119,38 +183,73 @@ def _save_individual_result(results_dir: str, sim_id: int, result_type: str, sim
                 f.write(f"  {key}: {value}\n")
 
     if SAVE_INDIVIDUAL_TRAJECTORIES:
-        # Reuse the existing plot helper through a minimal reproducer
+        # 完整版绘图功能 - 移植自类方法版本
         fig, ax = plt.subplots(figsize=(10, 8))
         ownship_size = full_result['ownship_size']
         ship_size = full_result['ship_size']
         ownship_velocity = OWNSHIP_VELOCITY
         ship_velocity = simulation_data['ship_parameters']['velocity']
 
+        # 繪製軌跡（圖例包含物體大小和速度）
         ax.plot(full_result['ownship_positions'][:, 1], full_result['ownship_positions'][:, 0],
                 'b-', linewidth=1, label=f'Ownship (size: {ownship_size:.1f}m, v: {ownship_velocity:.1f}m/s)', alpha=0.8)
         ax.plot(full_result['ship_positions'][:, 1], full_result['ship_positions'][:, 0],
                 'r-', linewidth=1, label=f'Ship A (size: {ship_size:.1f}m, v: {ship_velocity:.1f}m/s)', alpha=0.8)
 
+        # 在預測碰撞點畫一個紅色 X 標記
+        collision_info = simulation_data.get('collision_info', {})
+        if collision_info and 'predicted_collision_point' in collision_info and collision_info['predicted_collision_point'] is not None:
+            try:
+                p = collision_info['predicted_collision_point']
+                # 轉為 (East, North) => (x, y)
+                px_east = p[1]
+                py_north = p[0]
+                ax.plot(
+                    px_east,
+                    py_north,
+                    marker='x',
+                    color='red',
+                    markersize=10,
+                    markeredgewidth=2,
+                    linestyle='None',
+                    label='No-Action Collision Point'
+                )
+            except Exception:
+                pass
+
+        # 在軌跡末端添加箭頭
+        _add_trajectory_endpoint_arrows(ax, full_result['ownship_positions'], 'blue')
+        _add_trajectory_endpoint_arrows(ax, full_result['ship_positions'], 'red')
+        
+        # 添加軌跡箭頭（顯示運動方向，使用速度信息自動調整大小）
+        _add_trajectory_section(ax, full_result['ownship_positions'], 'blue', ownship_velocity)
+        _add_trajectory_section(ax, full_result['ship_positions'], 'red', ship_velocity)
+
+        # 標記起始和結束位置
         ax.plot(full_result['ownship_positions'][0, 1], full_result['ownship_positions'][0, 0], 'bo', markersize=5, label='Ownship Start')
         ax.plot(full_result['ship_positions'][0, 1], full_result['ship_positions'][0, 0], 'ro', markersize=5,
                 label=f"Ship A Start (rate turn: {simulation_data['ship_parameters'].get('rate_of_turn', 0.0):.2f} deg/s)")
         ax.plot(full_result['goal'].position[1], full_result['goal'].position[0], 'g*', markersize=10, label='Goal')
 
+        # 添加最接近點
         min_dist_idx = int(np.argmin(full_result['distances']))
         ax.plot(full_result['ownship_positions'][min_dist_idx, 1], full_result['ownship_positions'][min_dist_idx, 0], 'ko', markersize=2, alpha=0.5)
         ax.plot(full_result['ship_positions'][min_dist_idx, 1], full_result['ship_positions'][min_dist_idx, 0], 'ko', markersize=2, alpha=0.5)
+        
+        # 連線顯示最小距離（現在是表面距離）
         ax.plot([full_result['ownship_positions'][min_dist_idx, 1], full_result['ship_positions'][min_dist_idx, 1]],
                 [full_result['ownship_positions'][min_dist_idx, 0], full_result['ship_positions'][min_dist_idx, 0]],
                 'k--', alpha=0.5, label=f"Min Surface Distance: {np.min(full_result['distances']):.2f}m")
-        ax.set_xlabel('East (m)')
-        ax.set_ylabel('North (m)')
-        ax.set_title(f'Simulation #{sim_id:05d} - {result_type.upper()}')
+
+        ax.set_xlabel('East (m)', fontsize=12, fontweight='bold')
+        ax.set_ylabel('North (m)', fontsize=12, fontweight='bold')
+        ax.set_title(f'Simulation #{sim_id:05d} - {result_type.upper()}', fontsize=14, fontweight='bold')
         ax.legend(loc='upper right')
         ax.grid(True, alpha=0.3)
         ax.axis('equal')
         plt.tight_layout()
         out_png = save_dir / f"{sim_id:05d}.png"
-        plt.savefig(out_png, dpi=300, bbox_inches='tight')
+        plt.savefig(out_png, dpi=600, bbox_inches='tight')
         plt.close()
 
 def _run_simulation_task(sim_id: int, results_dir: str, ownship_config: dict, goal_config: dict, seed: int | None):
@@ -604,10 +703,10 @@ class MonteCarloRunner:
         ax.plot([result['ownship_positions'][min_dist_idx, 1], result['ship_positions'][min_dist_idx, 1]],
                 [result['ownship_positions'][min_dist_idx, 0], result['ship_positions'][min_dist_idx, 0]],
                 'k--', alpha=0.5, label=f'Min Surface Distance: {np.min(result["distances"]):.2f}m')
-        
-        ax.set_xlabel('East (m)')
-        ax.set_ylabel('North (m)')
-        ax.set_title(f'Simulation #{sim_id:05d} - {result_type.upper()}')
+
+        ax.set_xlabel('East (m)', fontsize=12, fontweight='bold')
+        ax.set_ylabel('North (m)', fontsize=12, fontweight='bold')
+        ax.set_title(f'Simulation #{sim_id:05d} - {result_type.upper()}', fontsize=14, fontweight='bold')
         ax.legend(loc='upper right')  # 指定圖例位置避免警告
         ax.grid(True, alpha=0.3)
         ax.axis('equal')

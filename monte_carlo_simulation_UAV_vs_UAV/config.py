@@ -15,11 +15,11 @@ MAX_TIME_STEPS = 75000  # maximum simulation steps (increased for longer simulat
 MAX_SIMULATION_TIME = MAX_TIME_STEPS * DELTA_TIME  # seconds
 
 # Monte Carlo parameters
-NUM_SIMULATIONS = 10000  # number of Monte Carlo runs 
+NUM_SIMULATIONS = 5  # number of Monte Carlo runs 
 USE_ABSOLUTE_BEARINGS = True  # True for absolute, False for relative
 
 # Individual trajectory saving options
-SAVE_INDIVIDUAL_TRAJECTORIES = False  # Whether to save individual trajectory plots
+SAVE_INDIVIDUAL_TRAJECTORIES = True  # Whether to save individual trajectory plots
 SAVE_INDIVIDUAL_PARAMETERS = True   # Whether to save individual simulation parameters
 SHOW_INDIVIDUAL_PLOTS = False  # Whether to display individual plots (False = save only)
 

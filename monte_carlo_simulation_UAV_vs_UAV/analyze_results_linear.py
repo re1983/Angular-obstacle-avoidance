@@ -126,7 +126,7 @@ class MonteCarloAnalyzer:
         plt.rcParams['axes.unicode_minus'] = False
         
         # Use a 3x2 layout (six plots)
-        fig, axes = plt.subplots(3, 2, figsize=(8, 9))
+        fig, axes = plt.subplots(3, 2, figsize=(10, 12))
         # Subtitle: show total simulations and percentages by result type
         counts = {k: len(self.results.get(k, [])) for k in ['successful', 'collision', 'timeout']}
         total = sum(counts.values())
@@ -142,7 +142,7 @@ class MonteCarloAnalyzer:
             f"Collision: {counts['collision']} ({collision_pct:.1f}%) | "
             f"Timeout: {counts['timeout']} ({timeout_pct:.1f}%)"
         )
-        fig.suptitle(subtitle, fontsize=16)
+        # fig.suptitle(subtitle, fontsize=16)
 
 
         # Collect all results
@@ -165,9 +165,9 @@ class MonteCarloAnalyzer:
             ax_min_dist.hist(min_distances, bins=50, alpha=0.7, edgecolor='black', color='orange')
             ax_min_dist.axvline(np.mean(min_distances), color='red', linestyle='--', 
                                 label=f'Mean: {np.mean(min_distances):.2f}m')
-            ax_min_dist.set_xlabel('Minimum Distance (m)')
-            ax_min_dist.set_ylabel('Frequency')
-            ax_min_dist.set_title('Minimum Distance Distribution')
+            ax_min_dist.set_xlabel('Minimum Distance (m)', fontsize=12, fontweight='bold')
+            ax_min_dist.set_ylabel('Frequency', fontsize=12, fontweight='bold')
+            ax_min_dist.set_title('Minimum Distance Distribution', fontsize=14, fontweight='bold')
             ax_min_dist.legend()
             ax_min_dist.grid(True, alpha=0.3)
 
@@ -182,9 +182,9 @@ class MonteCarloAnalyzer:
             ax_sim_time.hist(sim_times, bins=50, alpha=0.7, edgecolor='black', color='steelblue')
             ax_sim_time.axvline(np.mean(sim_times), color='red', linestyle='--',
                                 label=f'Mean: {np.mean(sim_times):.2f}s')
-            ax_sim_time.set_xlabel('Simulation Time (s)')
-            ax_sim_time.set_ylabel('Frequency')
-            ax_sim_time.set_title('Goal Reached Time Distribution')
+            ax_sim_time.set_xlabel('Simulation Time (s)', fontsize=12, fontweight='bold')
+            ax_sim_time.set_ylabel('Frequency', fontsize=12, fontweight='bold')
+            ax_sim_time.set_title('Goal Reached Time Distribution', fontsize=14, fontweight='bold')
             ax_sim_time.legend()
             ax_sim_time.grid(True, alpha=0.3)
         
@@ -197,9 +197,9 @@ class MonteCarloAnalyzer:
         
         if velocities:
             ax_vel.hist(velocities, bins=50, alpha=0.7, edgecolor='black', color='skyblue')
-            ax_vel.set_xlabel('Target Ship Velocity (m/s)')
-            ax_vel.set_ylabel('Frequency')
-            ax_vel.set_title('Target Ship Velocity Distribution')
+            ax_vel.set_xlabel('Target Ship Velocity (m/s)', fontsize=12, fontweight='bold')
+            ax_vel.set_ylabel('Frequency', fontsize=12, fontweight='bold')
+            ax_vel.set_title('Target Ship Velocity Distribution', fontsize=14, fontweight='bold')
             ax_vel.grid(True, alpha=0.3)
         
         # Target Ship parameter distribution - heading
@@ -211,9 +211,9 @@ class MonteCarloAnalyzer:
         
         if headings:
             ax_heading.hist(headings, bins=50, alpha=0.7, edgecolor='black', color='lightgreen')
-            ax_heading.set_xlabel('Target Ship Heading (degrees)')
-            ax_heading.set_ylabel('Frequency')
-            ax_heading.set_title('Target Ship Heading Distribution')
+            ax_heading.set_xlabel('Target Ship Heading (degrees)', fontsize=12, fontweight='bold')
+            ax_heading.set_ylabel('Frequency', fontsize=12, fontweight='bold')
+            ax_heading.set_title('Target Ship Heading Distribution', fontsize=14, fontweight='bold')
             ax_heading.grid(True, alpha=0.3)
         
         # Collision location distribution
@@ -225,9 +225,9 @@ class MonteCarloAnalyzer:
         
         if collision_ratios:
             ax_collision_loc.hist(collision_ratios, bins=50, alpha=0.7, edgecolor='black', color='coral')
-            ax_collision_loc.set_xlabel('Collision Location (% of Ownship Path)')
-            ax_collision_loc.set_ylabel('Frequency')
-            ax_collision_loc.set_title('Collision Location Distribution')
+            ax_collision_loc.set_xlabel('Collision Location (% of Ownship Path)', fontsize=12, fontweight='bold')
+            ax_collision_loc.set_ylabel('Frequency', fontsize=12, fontweight='bold')
+            ax_collision_loc.set_title('Collision Location Distribution', fontsize=14, fontweight='bold')
             ax_collision_loc.grid(True, alpha=0.3)
         
         # Target Ship size distribution
@@ -239,9 +239,9 @@ class MonteCarloAnalyzer:
         
         if sizes:
             ax_size.hist(sizes, bins=50, alpha=0.7, edgecolor='black', color='purple')
-            ax_size.set_xlabel('Target Ship Size (m)')
-            ax_size.set_ylabel('Frequency')
-            ax_size.set_title('Target Ship Size Distribution')
+            ax_size.set_xlabel('Target Ship Size (m)', fontsize=12, fontweight='bold')
+            ax_size.set_ylabel('Frequency', fontsize=12, fontweight='bold')
+            ax_size.set_title('Target Ship Size Distribution', fontsize=14, fontweight='bold')
             ax_size.grid(True, alpha=0.3)
         
         plt.tight_layout()
@@ -296,13 +296,13 @@ class MonteCarloAnalyzer:
                     ax.set_xlim(0, 1)
                     ax.set_ylim(0, 1)
                 
-                ax.set_title(f'Sample {i+1} (#{sim_id:05d})')
+                ax.set_title(f'Sample {i+1} (#{sim_id:05d})', fontsize=14, fontweight='bold')
             
             plt.tight_layout()
             
             # Save sample figure
             sample_file = self.results_dir / f"trajectories_{result_type}_{self.timestamp}.png"
-            plt.savefig(sample_file, dpi=300, bbox_inches='tight')
+            plt.savefig(sample_file, dpi=600, bbox_inches='tight')
             print(f"Trajectory samples for {result_type} saved to: {sample_file}")
             plt.close()
     
