@@ -13,6 +13,7 @@ from datetime import datetime
 import sys
 from pathlib import Path
 import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 # 添加當前目錄到 Python 路徑
 sys.path.append(str(Path(__file__).parent))
@@ -25,6 +26,232 @@ from BearingRateGraph_comparison import (
     run_single_simulation,
     print_simulation_summary
 )
+
+# ========================
+# Helpers for parallel run
+# ========================
+
+def _get_available_cpu_count() -> int | None:
+    """Get available CPU count, honoring Linux CPU affinity if possible."""
+    try:
+        # Linux: respect cgroup/affinity limits
+        return len(os.sched_getaffinity(0))
+    except Exception:
+        return os.cpu_count()
+
+def _compute_alpha_trigger_distance(ship_size_m: float, alpha_deg: float) -> float:
+    if alpha_deg is None or alpha_deg <= 0:
+        return 0.0
+    alpha_rad = np.radians(alpha_deg)
+    denom = np.tan(alpha_rad / 2.0)
+    if abs(denom) < 1e-12:
+        return float('inf')
+    return ship_size_m / (2.0 * denom)
+
+def _generate_random_ship_parameters(seed: int | None):
+    # Ensure per-task RNG
+    if seed is not None:
+        np.random.seed(seed)
+    elif RANDOM_SEED is not None:
+        np.random.seed(RANDOM_SEED)
+    # else: leave RNG as-is for OS-entropy
+
+    return {
+        'velocity': np.random.uniform(SHIP_A_VELOCITY_RANGE[0], SHIP_A_VELOCITY_RANGE[1]),
+        'heading': np.random.uniform(SHIP_A_HEADING_RANGE[0], SHIP_A_HEADING_RANGE[1]),
+        'size': np.random.uniform(SHIP_A_SIZE_RANGE[0], SHIP_A_SIZE_RANGE[1]),
+        'collision_ratio': np.random.uniform(COLLISION_ZONE_START_RATIO, COLLISION_ZONE_END_RATIO),
+        'rate_of_turn': np.random.uniform(SHIP_A_MAX_RATE_OF_TURN[0], SHIP_A_MAX_RATE_OF_TURN[1])
+    }
+
+def _save_individual_result(results_dir: str, sim_id: int, result_type: str, simulation_data: dict, full_result: dict):
+    save_dir = Path(results_dir) / result_type
+    # Extract min-distance index
+    min_dist_idx = int(np.argmin(full_result['distances']))
+    actual_collision_ownship_pos = full_result['ownship_positions'][min_dist_idx]
+    actual_collision_ship_pos = full_result['ship_positions'][min_dist_idx]
+    actual_collision_midpoint = (actual_collision_ownship_pos + actual_collision_ship_pos) / 2
+
+    param_file = save_dir / f"{sim_id:05d}.txt"
+    with open(param_file, 'w', encoding='utf-8') as f:
+        f.write(f"Monte Carlo Simulation #{sim_id:05d}\n")
+        f.write(f"Result Type: {result_type}\n")
+        f.write(f"{'='*50}\n\n")
+        f.write("Ship A Parameters:\n")
+        for key, value in simulation_data['ship_parameters'].items():
+            f.write(f"  {key}: {value}\n")
+
+        collision_info = simulation_data.get('collision_info', {})
+        if collision_info and 'predicted_collision_point' in collision_info:
+            ship_initial_pos = full_result['ship_positions'][0]
+            f.write(f"  initial_position: [{ship_initial_pos[0]:.3f}, {ship_initial_pos[1]:.3f}, {ship_initial_pos[2]:.3f}]\n")
+
+        f.write(f"\nCollision Prediction:\n")
+        if collision_info:
+            f.write(f"  Predicted collision point: {collision_info.get('predicted_collision_point', 'N/A')}\n")
+            f.write(f"  Predicted collision time: {collision_info.get('predicted_collision_time', 'N/A')}\n")
+            f.write(f"  Motion type: {collision_info.get('motion_type', 'N/A')}\n")
+
+        f.write(f"\nActual Collision Location:\n")
+        f.write(f"  Ownship position at min distance: [{actual_collision_ownship_pos[0]:.3f}, {actual_collision_ownship_pos[1]:.3f}, {actual_collision_ownship_pos[2]:.3f}]\n")
+        f.write(f"  Ship A position at min distance: [{actual_collision_ship_pos[0]:.3f}, {actual_collision_ship_pos[1]:.3f}, {actual_collision_ship_pos[2]:.3f}]\n")
+        f.write(f"  Midpoint at min distance: [{actual_collision_midpoint[0]:.3f}, {actual_collision_midpoint[1]:.3f}, {actual_collision_midpoint[2]:.3f}]\n")
+        f.write(f"  Time at min distance: {min_dist_idx * DELTA_TIME:.3f}s\n")
+
+        f.write(f"\nOwnship Configuration:\n")
+        f.write(f"  initial_position: {OWNSHIP_INITIAL_POSITION}\n")
+        f.write(f"  velocity: {OWNSHIP_VELOCITY}\n")
+        f.write(f"  size: {OWNSHIP_SIZE}\n")
+        f.write(f"  max_rate_of_turn: {OWNSHIP_MAX_RATE_OF_TURN}\n")
+
+        f.write(f"\nGoal Configuration:\n")
+        f.write(f"  position: {GOAL_POSITION}\n")
+
+        f.write(f"\nSimulation Parameters:\n")
+        f.write(f"  delta_time: {DELTA_TIME}\n")
+        f.write(f"  max_time_steps: {MAX_TIME_STEPS}\n")
+        f.write(f"  use_absolute_bearings: {USE_ABSOLUTE_BEARINGS}\n")
+        f.write(f"  alpha_nav: {ALPHA_NAV}\n")
+
+        f.write(f"\nSimulation Results:\n")
+        for key, value in simulation_data['result'].items():
+            if key != 'success':
+                f.write(f"  {key}: {value}\n")
+
+    if SAVE_INDIVIDUAL_TRAJECTORIES:
+        # Reuse the existing plot helper through a minimal reproducer
+        fig, ax = plt.subplots(figsize=(10, 8))
+        ownship_size = full_result['ownship_size']
+        ship_size = full_result['ship_size']
+        ownship_velocity = OWNSHIP_VELOCITY
+        ship_velocity = simulation_data['ship_parameters']['velocity']
+
+        ax.plot(full_result['ownship_positions'][:, 1], full_result['ownship_positions'][:, 0],
+                'b-', linewidth=1, label=f'Ownship (size: {ownship_size:.1f}m, v: {ownship_velocity:.1f}m/s)', alpha=0.8)
+        ax.plot(full_result['ship_positions'][:, 1], full_result['ship_positions'][:, 0],
+                'r-', linewidth=1, label=f'Ship A (size: {ship_size:.1f}m, v: {ship_velocity:.1f}m/s)', alpha=0.8)
+
+        ax.plot(full_result['ownship_positions'][0, 1], full_result['ownship_positions'][0, 0], 'bo', markersize=5, label='Ownship Start')
+        ax.plot(full_result['ship_positions'][0, 1], full_result['ship_positions'][0, 0], 'ro', markersize=5,
+                label=f"Ship A Start (rate turn: {simulation_data['ship_parameters'].get('rate_of_turn', 0.0):.2f} deg/s)")
+        ax.plot(full_result['goal'].position[1], full_result['goal'].position[0], 'g*', markersize=10, label='Goal')
+
+        min_dist_idx = int(np.argmin(full_result['distances']))
+        ax.plot(full_result['ownship_positions'][min_dist_idx, 1], full_result['ownship_positions'][min_dist_idx, 0], 'ko', markersize=2, alpha=0.5)
+        ax.plot(full_result['ship_positions'][min_dist_idx, 1], full_result['ship_positions'][min_dist_idx, 0], 'ko', markersize=2, alpha=0.5)
+        ax.plot([full_result['ownship_positions'][min_dist_idx, 1], full_result['ship_positions'][min_dist_idx, 1]],
+                [full_result['ownship_positions'][min_dist_idx, 0], full_result['ship_positions'][min_dist_idx, 0]],
+                'k--', alpha=0.5, label=f"Min Surface Distance: {np.min(full_result['distances']):.2f}m")
+        ax.set_xlabel('East (m)')
+        ax.set_ylabel('North (m)')
+        ax.set_title(f'Simulation #{sim_id:05d} - {result_type.upper()}')
+        ax.legend(loc='upper right')
+        ax.grid(True, alpha=0.3)
+        ax.axis('equal')
+        plt.tight_layout()
+        out_png = save_dir / f"{sim_id:05d}.png"
+        plt.savefig(out_png, dpi=300, bbox_inches='tight')
+        plt.close()
+
+def _run_simulation_task(sim_id: int, results_dir: str, ownship_config: dict, goal_config: dict, seed: int | None):
+    """Worker entry: run one simulation end-to-end and save artifacts.
+
+    Returns a small dict (simulation_data) for aggregation. Heavy arrays are not returned (saved on disk).
+    """
+    # Per-task RNG seed
+    params = _generate_random_ship_parameters(seed)
+
+    # Create scenario; retry if too close to ownship based on alpha-trigger or min spawn
+    max_attempts = 50
+    attempt = 0
+    while True:
+        attempt += 1
+        ship_params = params if attempt == 1 else _generate_random_ship_parameters(None if seed is None else seed + attempt)
+
+        initial_pos, collision_point, collision_time = calculate_ship_initial_position_with_turning(
+            ownship_config,
+            goal_config,
+            ship_params['velocity'],
+            ship_params['heading'],
+            ship_params['rate_of_turn'],
+            ship_params['collision_ratio']
+        )
+
+        ownship_start = np.array(ownship_config["position"], dtype=float)
+        ship_start = np.array(initial_pos, dtype=float)
+        center_distance = float(np.linalg.norm(ship_start - ownship_start))
+
+        alpha_trigger_d = _compute_alpha_trigger_distance(ship_params['size'], ALPHA_NAV)
+        required_min_d = max(alpha_trigger_d, SHIP_A_MIN_SPAWN_DISTANCE)
+
+        if center_distance < required_min_d:
+            if attempt >= max_attempts:
+                # Accept with relaxed constraint to avoid infinite loop
+                if center_distance >= SHIP_A_MIN_SPAWN_DISTANCE:
+                    break
+                else:
+                    break
+            continue
+        else:
+            break
+
+    ship_config = {
+        "name": "Ship A",
+        "velocity": ship_params['velocity'],
+        "acceleration": 0,
+        "heading": ship_params['heading'],
+        "rate_of_turn": ship_params['rate_of_turn'],
+        "position": initial_pos,
+        "size": ship_params['size'],
+        "max_rate_of_turn": [12, 12]
+    }
+
+    ship_config["_collision_info"] = {
+        "predicted_collision_point": collision_point,
+        "predicted_collision_time": collision_time,
+        "collision_ratio": ship_params['collision_ratio'],
+        "motion_type": "circular" if abs(ship_params['rate_of_turn']) > 1e-10 else "linear"
+    }
+
+    result = run_single_simulation(
+        use_absolute_bearings=USE_ABSOLUTE_BEARINGS,
+        ownship_config=ownship_config,
+        ship_config=ship_config,
+        goal_config=goal_config,
+        time_steps=MAX_TIME_STEPS,
+        delta_time=DELTA_TIME,
+        ALPHA_TRIG=ALPHA_NAV
+    )
+
+    simulation_data = {
+        'simulation_id': sim_id,
+        'ship_parameters': ship_params,
+        'collision_info': ship_config.get('_collision_info', {}),
+        'result': {
+            'collision_time': result.get('collision_time'),
+            'arrival_time': result.get('arrival_time'),
+            'timeout': result.get('timeout'),
+            'simulation_time': result.get('simulation_time'),
+            'min_distance': float(np.min(result['distances'])),
+            'max_angular_size': float(np.max(result['angular_sizes'])),
+            'success': _classify_result(result)
+        }
+    }
+
+    # Save artifacts (text + optional image) inside the worker
+    _save_individual_result(results_dir, sim_id, simulation_data['result']['success'], simulation_data, result)
+
+    return simulation_data
+
+def _classify_result(result: dict) -> str:
+    if result.get('collision_time') is not None:
+        return 'collision'
+    elif result.get('arrival_time') is not None:
+        return 'successful'
+    elif result.get('timeout'):
+        return 'timeout'
+    else:
+        return 'unknown'
 
 class MonteCarloRunner:
     """蒙地卡羅模擬運行器"""
@@ -545,21 +772,22 @@ class MonteCarloRunner:
                     ax.plot([start_x, end_x], [start_y, end_y], 
                             color=color, linewidth=1, alpha=1.0)
     
-    def run_monte_carlo_batch(self):
+    def run_monte_carlo_batch(self, total: int | None = None):
         """執行完整的蒙地卡羅批次模擬"""
-        print(f"Starting Monte Carlo simulation with {NUM_SIMULATIONS} runs...")
+        total = NUM_SIMULATIONS if total is None else int(total)
+        print(f"Starting Monte Carlo simulation with {total} runs...")
         print(f"Using {'Absolute' if USE_ABSOLUTE_BEARINGS else 'Relative'} bearing control")
         
         self.simulation_results = []
         
-        for i in range(NUM_SIMULATIONS):
+        for i in range(total):
             try:
                 result = self.run_single_monte_carlo(i + 1)
                 self.simulation_results.append(result)
                 
                 # 顯示進度
-                progress = (i + 1) / NUM_SIMULATIONS * 100
-                print(f"Progress: {progress:.1f}% ({i + 1}/{NUM_SIMULATIONS})")
+                progress = (i + 1) / total * 100
+                print(f"Progress: {progress:.1f}% ({i + 1}/{total})")
                 
             except Exception as e:
                 print(f"Error in simulation {i + 1}: {str(e)}")
@@ -570,6 +798,71 @@ class MonteCarloRunner:
         self.save_raw_data()
         
         print(f"\nMonte Carlo simulation completed!")
+        print(f"Results saved to: {self.results_dir}")
+
+    def run_monte_carlo_parallel(self, workers: int | None = None, total: int | None = None):
+        """使用多進程並行執行蒙地卡羅模擬。
+
+        - 自動偵測 CPU 可用核心數，預設保留 1 顆核心避免過度飽和。
+        - 每個 worker 會獨立產生隨機參數並將結果存到同一個 results 目錄下（以 sim_id 區分檔名）。
+        - 為可重現性，若設定 RANDOM_SEED，則每個任務會以 (RANDOM_SEED + sim_id) 當作種子。
+        """
+        total = NUM_SIMULATIONS if total is None else int(total)
+        # 決定 worker 數
+        avail_cpus = _get_available_cpu_count()
+        if workers is None or workers <= 0:
+            workers = max(1, avail_cpus - 1 if avail_cpus and avail_cpus > 1 else 1)
+        print(f"Detected CPUs: {avail_cpus} -> Using workers: {workers}")
+
+        self.simulation_results = []
+        start_ts = time.perf_counter()
+
+        # 準備任務參數（避免在 process 之間大量傳遞）
+        own_cfg = self.ownship_config
+        goal_cfg = self.goal_config
+        results_dir = str(self.results_dir)
+
+        with ProcessPoolExecutor(max_workers=workers) as executor:
+            futures = {}
+            for sim_id in range(1, total + 1):
+                seed = (RANDOM_SEED + sim_id) if RANDOM_SEED is not None else None
+                fut = executor.submit(
+                    _run_simulation_task,
+                    sim_id,
+                    results_dir,
+                    own_cfg,
+                    goal_cfg,
+                    seed,
+                )
+                futures[fut] = sim_id
+
+            done_count = 0
+            last_report = 0.0
+            for fut in as_completed(futures):
+                sim_id = futures[fut]
+                try:
+                    sim_data = fut.result()
+                    if sim_data is not None:
+                        self.simulation_results.append(sim_data)
+                except Exception as e:
+                    print(f"Worker failed for sim #{sim_id:05d}: {e}")
+                finally:
+                    done_count += 1
+                    progress = done_count / total * 100
+                    # 降低輸出頻率：每完成 2% 報告一次
+                    if progress - last_report >= 2.0 or done_count == total:
+                        print(f"Progress: {progress:.1f}% ({done_count}/{total})")
+                        last_report = progress
+
+        elapsed = time.perf_counter() - start_ts
+        print("=" * 50)
+        print(f"Parallel run finished. Total elapsed: {elapsed:.2f}s")
+        if total > 0:
+            print(f"Average per simulation: {elapsed / total:.2f}s ({total} runs)")
+
+        # 收尾：生成總結與儲存原始資料
+        self.generate_summary_report()
+        self.save_raw_data()
         print(f"Results saved to: {self.results_dir}")
     
     def generate_summary_report(self):
@@ -593,7 +886,7 @@ class MonteCarloRunner:
             f.write(f"{'='*60}\n\n")
             
             f.write(f"Simulation Parameters:\n")
-            f.write(f"  Number of simulations: {NUM_SIMULATIONS}\n")
+            f.write(f"  Number of simulations: {len(self.simulation_results)}\n")
             f.write(f"  Bearing control method: {'Absolute' if USE_ABSOLUTE_BEARINGS else 'Relative'}\n")
             f.write(f"  Max simulation time: {MAX_SIMULATION_TIME:.1f}s\n\n")
             
@@ -643,19 +936,30 @@ class MonteCarloRunner:
 
 def main():
     """主函數"""
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Monte Carlo Collision Avoidance Simulation (Parallel)")
+    parser.add_argument("--workers", type=int, default=None, help="Number of parallel workers (default: CPUs-1)")
+    parser.add_argument("--serial", action="store_true", help="Run in serial mode instead of parallel")
+    parser.add_argument("--count", type=int, default=None, help="Override number of simulations for this run")
+    args = parser.parse_args()
+
     print("Monte Carlo Collision Avoidance Simulation")
     print("=" * 50)
-    
-    # 創建並執行模擬
-    start_ts = time.perf_counter()
+
     runner = MonteCarloRunner()
-    runner.run_monte_carlo_batch()
-    elapsed = time.perf_counter() - start_ts
-    count = len(runner.simulation_results)
-    print("=" * 50)
-    print(f"Total elapsed time: {elapsed:.2f}s")
-    if count > 0:
-        print(f"Average per simulation: {elapsed / count:.2f}s ({count} runs)")
+
+    if args.serial:
+        start_ts = time.perf_counter()
+        runner.run_monte_carlo_batch(total=args.count)
+        elapsed = time.perf_counter() - start_ts
+        count = len(runner.simulation_results)
+        print("=" * 50)
+        print(f"Total elapsed time: {elapsed:.2f}s")
+        if count > 0:
+            print(f"Average per simulation: {elapsed / count:.2f}s ({count} runs)")
+    else:
+        runner.run_monte_carlo_parallel(workers=args.workers, total=args.count)
 
 if __name__ == "__main__":
     main()
