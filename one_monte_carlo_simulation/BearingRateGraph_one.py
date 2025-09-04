@@ -253,16 +253,17 @@ def angle_difference_in_deg(angle1, angle2):
         angle_diff -= 360
     return angle_diff
 
-def adj_ownship_heading_absolute(absolute_bearings, bearings_difference, absolute_bearings_difference, angular_sizes, ship, goal, target_ship, delta_time=0.01, ALPHA_TRIG=1.0):
+def adj_ownship_heading_absolute(headings_difference, absolute_bearings, bearings_difference, absolute_bearings_difference, angular_sizes, ship, goal, target_ship, delta_time=0.01, ALPHA_TRIG=1.0):
     """
     Adjust ownship heading based on CBDR principle using absolute bearings.
     """
     velocity = ship.velocity
     rate_of_turn = ship.rate_of_turn
+    heading = ship.heading
     max_rate_of_turn = ship.max_rate_of_turn[0]
     current_relative_bearing = get_bearing(ship, target_ship)
     # avoidance_gain = angular_sizes[-1] ** 2 * 3
-    avoidance_gain = np.exp(angular_sizes[-1]) * 2
+    
 
     if len(absolute_bearings_difference) >= 1:
 
@@ -297,15 +298,20 @@ def adj_ownship_heading_absolute(absolute_bearings, bearings_difference, absolut
             theta_goal = get_bearing(ship, goal)
             rate_of_turn = theta_goal
             distance = get_distance_3d(ship.position, goal.position)
-            if distance < 150:
-                velocity = distance / 10
+            if distance < 30:
+                velocity = distance / 2
             else:
                 velocity = velocity
         else:
+            # avoidance_gain = np.exp(angular_sizes[-1] - ALPHA_TRIG) * 3
+            avoidance_gain = (angular_sizes[-1] - ALPHA_TRIG) * 20
+            # print(angular_sizes[-1] - ALPHA_TRIG)
+            # print(bearings_difference[-1], absolute_bearings_difference[-1]-headings_difference[-1])
             # rounded_rate = absolute_bearings_difference[-1]
             rounded_rate = bearings_difference[-1]
             # rounded_rate = min(np.abs(absolute_bearings_difference[-1]), np.abs(bearings_difference[-1]))
-            if abs(rounded_rate) <= 1e-5:  # True CBDR (bearing rate ≈ 0)
+            if abs(rounded_rate) <= 1e-3:  # True CBDR (bearing rate ≈ 0)
+                # rate_of_turn = max_rate_of_turn
                 # rate_of_turn = -max_rate_of_turn
 
                 # if current_relative_bearing < 0:  # Ship is on port side (left)
@@ -315,14 +321,14 @@ def adj_ownship_heading_absolute(absolute_bearings, bearings_difference, absolut
 
                 if current_relative_bearing < 0:  # Ship is on port side (left)
                     if abs(current_relative_bearing) <= 90:
-                        rate_of_turn = -angular_sizes[-1]  # Turn left (negative)
+                        rate_of_turn = -np.exp(angular_sizes[-1])  # Turn left (negative)
                     else:
-                        rate_of_turn = angular_sizes[-1]   # Turn right (positive)
+                        rate_of_turn = np.exp(angular_sizes[-1])   # Turn right (positive)
                 else:  # Ship is on starboard side (right)
                     if abs(current_relative_bearing) <= 90:
-                        rate_of_turn = angular_sizes[-1]   # Turn right (positive)
+                        rate_of_turn = np.exp(angular_sizes[-1])   # Turn right (positive)
                     else:
-                        rate_of_turn = -angular_sizes[-1]  # Turn left (negative)
+                        rate_of_turn = -np.exp(angular_sizes[-1])  # Turn left (negative)
             else:
                 # rounded_rate = bearings_difference[-1]
                 rate_of_turn = -np.sign(rounded_rate) * avoidance_gain
@@ -419,7 +425,7 @@ def run_single_simulation(use_absolute_bearings=True,
     ship = ShipStatus(**clean_ship_config)
     goal = ShipStatus(**goal_config)    # Initialize data storage
     ownship_positions, ship_positions = [], []
-    bearings, angular_sizes, bearings_difference, distances = [], [], [], []
+    bearings, angular_sizes, bearings_difference, distances, headings_difference = [], [], [], [], []
     absolute_bearings, absolute_bearings_difference = [], []
     ownship_velocities, ship_velocities, ownship_headings = [], [], []
     
@@ -471,7 +477,7 @@ def run_single_simulation(use_absolute_bearings=True,
         
         # Apply control logic based on method
         if use_absolute_bearings:
-            ownship.rate_of_turn, ownship.velocity = adj_ownship_heading_absolute(
+            ownship.rate_of_turn, ownship.velocity = adj_ownship_heading_absolute(headings_difference, 
                 absolute_bearings, bearings_difference, absolute_bearings_difference, angular_sizes, ownship, goal, ship, delta_time, ALPHA_TRIG)
         else:
             ownship.rate_of_turn, ownship.velocity = adj_ownship_heading_relative(
@@ -491,10 +497,12 @@ def run_single_simulation(use_absolute_bearings=True,
         
         abs_diff = angle_difference_in_deg(absolute_bearing, update_absolute_bearing) / delta_time
         rel_diff = angle_difference_in_deg(bearing, update_bearing) / delta_time
-        
+        heading_diff = angle_difference_in_deg(ownship_headings[-1], ownship.heading) / delta_time
+
         absolute_bearings_difference.append(abs_diff)
         bearings_difference.append(rel_diff)
-    
+        headings_difference.append(heading_diff)
+
     # Check for timeout
     if not simulation_ended:
         timeout = True

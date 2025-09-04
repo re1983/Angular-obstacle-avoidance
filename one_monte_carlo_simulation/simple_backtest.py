@@ -11,7 +11,7 @@ from pathlib import Path
 # 添加當前目錄到 Python 路徑
 sys.path.append(str(Path(__file__).parent))
 
-from BearingRateGraph_comparison import (
+from BearingRateGraph_one import (
     run_single_simulation,
     plot_results
 )
