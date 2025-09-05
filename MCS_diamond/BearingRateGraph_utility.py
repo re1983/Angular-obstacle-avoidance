@@ -264,7 +264,7 @@ def adj_ownship_heading_absolute(headings_difference, absolute_bearings, bearing
     current_relative_bearing = get_bearing(ship, target_ship)
     noise = np.random.normal(1, 0.1)
     # print(noise)
-    angular_noises = angular_sizes[-1] #* noise
+    angular_noises = angular_sizes[-1] * noise
     # if angular_noises > ALPHA_TRIG:
     #     print(f"Angular Size: {angular_sizes[-1]:.4f}°, with noise: {angular_noises:.4f}°")
 

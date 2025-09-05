@@ -15,12 +15,12 @@ MAX_TIME_STEPS = 75000  # maximum simulation steps (increased for longer simulat
 MAX_SIMULATION_TIME = MAX_TIME_STEPS * DELTA_TIME  # seconds
 
 # Monte Carlo parameters
-NUM_SIMULATIONS = 1000  # number of Monte Carlo runs 
+NUM_SIMULATIONS = 10000  # number of Monte Carlo runs 
 USE_ABSOLUTE_BEARINGS = True  # True for absolute, False for relative
 
 # Individual trajectory saving options
-SAVE_INDIVIDUAL_TRAJECTORIES = True  # Whether to save individual trajectory plots
-SAVE_INDIVIDUAL_PARAMETERS = True   # Whether to save individual simulation parameters
+SAVE_INDIVIDUAL_TRAJECTORIES = False  # Whether to save individual trajectory plots
+SAVE_INDIVIDUAL_PARAMETERS = False   # Whether to save individual simulation parameters
 SHOW_INDIVIDUAL_PLOTS = False  # Whether to display individual plots (False = save only)
 
 # =============================================================================
@@ -40,7 +40,7 @@ GOAL_POSITION = [1500.0, 0.0, 0.0]  # [North, East, Down]
 SHIP_A_SIZE_RANGE = [28, 42]  # [min, max] m
 SHIP_A_VELOCITY_RANGE = [170, 180]  # [min, max] m/s
 SHIP_A_HEADING_RANGE = [-180.0, 180.0]  # [min, max] degrees
-SHIP_A_MAX_RATE_OF_TURN = [-1.5, -1.5]  # deg/s (fixed) - straight line motion
+SHIP_A_MAX_RATE_OF_TURN = [0.0, 0.0]  # deg/s (fixed) - straight line motion
 SHIP_A_VELOCITY_LIMIT = [0.5, 10.0]  # [min, max] m/s (original default, not used)
 
 # =============================================================================
