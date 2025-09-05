@@ -20,7 +20,7 @@ USE_ABSOLUTE_BEARINGS = True  # True for absolute, False for relative
 
 # Individual trajectory saving options
 SAVE_INDIVIDUAL_TRAJECTORIES = False  # Whether to save individual trajectory plots
-SAVE_INDIVIDUAL_PARAMETERS = False   # Whether to save individual simulation parameters
+SAVE_INDIVIDUAL_PARAMETERS = False  # Whether to save individual simulation parameters
 SHOW_INDIVIDUAL_PLOTS = False  # Whether to display individual plots (False = save only)
 
 # =============================================================================
@@ -38,7 +38,8 @@ GOAL_POSITION = [1500.0, 0.0, 0.0]  # [North, East, Down]
 
 # Ship A (randomized parameters - ranges)
 SHIP_A_SIZE_RANGE = [28, 42]  # [min, max] m
-SHIP_A_VELOCITY_RANGE = [170, 180]  # [min, max] m/s
+# SHIP_A_VELOCITY_RANGE = [170, 190]  # [min, max] m/s
+SHIP_A_VELOCITY_RANGE = [58, 68]  # [min, max] m/s
 SHIP_A_HEADING_RANGE = [-180.0, 180.0]  # [min, max] degrees
 SHIP_A_MAX_RATE_OF_TURN = [0.0, 0.0]  # deg/s (fixed) - straight line motion
 SHIP_A_VELOCITY_LIMIT = [0.5, 10.0]  # [min, max] m/s (original default, not used)

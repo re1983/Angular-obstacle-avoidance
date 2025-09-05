@@ -24,7 +24,9 @@ from config import *
 from BearingRateGraph_utility import (
     calculate_ship_initial_position_with_turning,
     run_single_simulation,
-    print_simulation_summary
+    print_simulation_summary,
+    DIAMOND_LENGTH_M,
+    DIAMOND_WINGSPAN_M,
 )
 
 # ========================
@@ -59,7 +61,6 @@ def _generate_random_ship_parameters(seed: int | None):
     return {
         'velocity': np.random.uniform(SHIP_A_VELOCITY_RANGE[0], SHIP_A_VELOCITY_RANGE[1]),
         'heading': np.random.uniform(SHIP_A_HEADING_RANGE[0], SHIP_A_HEADING_RANGE[1]),
-        'size': np.random.uniform(SHIP_A_SIZE_RANGE[0], SHIP_A_SIZE_RANGE[1]),
         'collision_ratio': np.random.uniform(COLLISION_ZONE_START_RATIO, COLLISION_ZONE_END_RATIO),
         'rate_of_turn': np.random.uniform(SHIP_A_MAX_RATE_OF_TURN[0], SHIP_A_MAX_RATE_OF_TURN[1])
     }
@@ -263,6 +264,8 @@ def _run_simulation_task(sim_id: int, results_dir: str, ownship_config: dict, go
     # Create scenario; retry if too close to ownship based on alpha-trigger or min spawn
     max_attempts = 50
     attempt = 0
+    # 固定菱形外形的等效尺寸（取長/翼展較大者）
+    effective_size = max(float(DIAMOND_LENGTH_M), float(DIAMOND_WINGSPAN_M))
     while True:
         attempt += 1
         ship_params = params if attempt == 1 else _generate_random_ship_parameters(None if seed is None else seed + attempt)
@@ -280,7 +283,8 @@ def _run_simulation_task(sim_id: int, results_dir: str, ownship_config: dict, go
         ship_start = np.array(initial_pos, dtype=float)
         center_distance = float(np.linalg.norm(ship_start - ownship_start))
 
-        alpha_trigger_d = _compute_alpha_trigger_distance(ship_params['size'], ALPHA_NAV)
+        # 使用菱形固定外形的保守尺寸（取最大邊，作為等效直徑）
+        alpha_trigger_d = _compute_alpha_trigger_distance(effective_size, ALPHA_NAV)
         required_min_d = max(alpha_trigger_d, SHIP_A_MIN_SPAWN_DISTANCE)
 
         if center_distance < required_min_d:
@@ -301,7 +305,8 @@ def _run_simulation_task(sim_id: int, results_dir: str, ownship_config: dict, go
         "heading": ship_params['heading'],
         "rate_of_turn": ship_params['rate_of_turn'],
         "position": initial_pos,
-        "size": ship_params['size'],
+        # 將菱形外形以等效直徑表示供碰撞檢查與標示使用（不影響角徑計算）
+        "size": effective_size,
         "max_rate_of_turn": [12, 12]
     }
 
@@ -429,7 +434,6 @@ class MonteCarloRunner:
         return {
             'velocity': np.random.uniform(SHIP_A_VELOCITY_RANGE[0], SHIP_A_VELOCITY_RANGE[1]),
             'heading': np.random.uniform(SHIP_A_HEADING_RANGE[0], SHIP_A_HEADING_RANGE[1]),
-            'size': np.random.uniform(SHIP_A_SIZE_RANGE[0], SHIP_A_SIZE_RANGE[1]),
             'collision_ratio': np.random.uniform(COLLISION_ZONE_START_RATIO, COLLISION_ZONE_END_RATIO),
             'rate_of_turn': np.random.uniform(SHIP_A_MAX_RATE_OF_TURN[0], SHIP_A_MAX_RATE_OF_TURN[1])  # 隨機轉彎率
         }
@@ -462,7 +466,9 @@ class MonteCarloRunner:
             ship_start = np.array(initial_pos, dtype=float)
             center_distance = float(np.linalg.norm(ship_start - ownship_start))
 
-            alpha_trigger_d = self.compute_alpha_trigger_distance(ship_params['size'], ALPHA_NAV)
+            # 使用菱形固定外形的保守尺寸（取最大邊，作為等效直徑）
+            effective_size = max(float(DIAMOND_LENGTH_M), float(DIAMOND_WINGSPAN_M))
+            alpha_trigger_d = self.compute_alpha_trigger_distance(effective_size, ALPHA_NAV)
             required_min_d = max(alpha_trigger_d, SHIP_A_MIN_SPAWN_DISTANCE)
 
             if center_distance < required_min_d:
@@ -490,7 +496,8 @@ class MonteCarloRunner:
             "heading": ship_params['heading'],
             "rate_of_turn": ship_params['rate_of_turn'],
             "position": initial_pos,
-            "size": ship_params['size'],
+            # 與平行流程一致，使用等效直徑供碰撞與標示
+            "size": effective_size,
             "max_rate_of_turn": [12, 12]
         }
         

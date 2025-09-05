@@ -2,6 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
+# 固定的目標機外形參數（先寫死在此檔案）
+# 長度（機頭到機尾的總長，m）與翼展（左翼端到右翼端的總寬，m）
+DIAMOND_LENGTH_M = 8.28
+DIAMOND_WINGSPAN_M = 11.00
+
 # Default simulation parameters
 DEFAULT_OWNSHIP_CONFIG = {
     "name": "Ownship",
@@ -241,6 +246,88 @@ def get_angular_diameter(ship1, ship2):
     angular_diameter = 2 * np.arctan(ship2.size / (2 * distance))
     return np.degrees(angular_diameter)
 
+def _diamond_vertices_world(target_ship: "ShipStatus", length_m: float, wingspan_m: float) -> np.ndarray:
+        """
+        以「菱形」定義的機體外形，在世界座標下回傳四個頂點。
+        定義（機體座標系，x 前、y 右、z 下）:
+            - 機頭:  (+L/2, 0)
+            - 機尾:  (-L/2, 0)
+            - 右翼:  (0, +W/2)
+            - 左翼:  (0, -W/2)
+        然後依 target_ship.heading（度，0=北，90=東）旋轉，並平移到 target_ship.position。
+        回傳 shape=(4,3) 的頂點陣列（N, E, D）。
+        """
+        L = float(length_m)
+        W = float(wingspan_m)
+
+        # 機體座標系下（N-x、E-y 對應為：北=+x，東=+y）
+        body_pts = np.array([
+                [ +L/2.0,  0.0, 0.0],  # nose
+                [ -L/2.0,  0.0, 0.0],  # tail
+                [  0.0,   +W/2.0, 0.0],# right wing tip (東側)
+                [  0.0,   -W/2.0, 0.0] # left wing tip  (西側)
+        ], dtype=float)
+
+        # 依航向（度）建立旋轉矩陣：0°=北(+x)，90°=東(+y)
+        theta = np.radians(target_ship.heading)
+        c, s = np.cos(theta), np.sin(theta)
+        R = np.array([[ c, -s, 0.0],
+                                    [ s,  c, 0.0],
+                                    [0.0, 0.0, 1.0]], dtype=float)
+
+        # 旋轉 + 平移到世界座標（N, E, D）
+        world_pts = (R @ body_pts.T).T + np.asarray(target_ship.position, dtype=float)
+        return world_pts
+
+def get_diamond_angular_diameter(ownship: "ShipStatus", target_ship: "ShipStatus",
+                                                                 length_m: float | None = None,
+                                                                 wingspan_m: float | None = None) -> float:
+        """
+        計算在 2D 平面（N-E）下，以「菱形外形（長、翼展）」描述的目標機，
+        就本機觀測到的「角直徑（Angular diameter，度）」。
+
+        作法：
+        - 以機頭、機尾、左右翼端四頂點形成凸多邊形（菱形）。
+        - 轉到世界座標後，取各頂點相對於本機位置的方位角（atan2）。
+        - 在圓周上找出覆蓋所有頂點角度的最短弧長，即為角直徑。
+
+        參數:
+            - ownship: 本機 ShipStatus
+            - target_ship: 目標 ShipStatus（提供位置與航向）
+            - length_m: 目標機長（可不填，預設使用 DIAMOND_LENGTH_M）
+            - wingspan_m: 目標機翼展（可不填，預設使用 DIAMOND_WINGSPAN_M）
+
+        回傳:
+            - 角直徑（度）。
+        """
+        L = DIAMOND_LENGTH_M if length_m is None else float(length_m)
+        W = DIAMOND_WINGSPAN_M if wingspan_m is None else float(wingspan_m)
+
+        # 頂點（世界座標）
+        verts = _diamond_vertices_world(target_ship, L, W)
+
+        # 以本機為原點的向量，計算各頂點的方位角
+        o = np.asarray(ownship.position, dtype=float)
+        vecs = verts - o
+
+        # 若本機在形狀內（極少見），定義角直徑為 360 度
+        # 這裡用點到線段的最小距離檢查是否穿越，但簡化處理：如任何頂點與本機幾乎重合
+        if np.any(np.linalg.norm(vecs[:, :2], axis=1) < 1e-6):
+                return 360.0
+
+        angles = np.arctan2(vecs[:, 1], vecs[:, 0])  # [-pi, pi]
+        # 轉成 [0, 2pi) 便於找最小覆蓋弧
+        ang = (angles + 2 * np.pi) % (2 * np.pi)
+        ang.sort()
+
+        # 計算相鄰角度間隙，包含尾首環狀差
+        diffs = np.diff(ang, append=ang[0] + 2 * np.pi)
+        max_gap = np.max(diffs)
+
+        # 最小覆蓋弧長 = 2pi - 最大間隙
+        arc = 2 * np.pi - max_gap
+        return np.degrees(arc)
+
 def angle_difference(angle1, angle2):
     angle_diff = (angle2 - angle1) % (2 * math.pi)
     if angle_diff > math.pi:
@@ -264,7 +351,7 @@ def adj_ownship_heading_absolute(headings_difference, absolute_bearings, bearing
     current_relative_bearing = get_bearing(ship, target_ship)
     noise = np.random.normal(1, 0.1)
     # print(noise)
-    angular_noises = angular_sizes[-1] * noise
+    angular_noises = angular_sizes[-1] #* noise
     # if angular_noises > ALPHA_TRIG:
     #     print(f"Angular Size: {angular_sizes[-1]:.4f}°, with noise: {angular_noises:.4f}°")
 
@@ -438,7 +525,8 @@ def run_single_simulation(use_absolute_bearings=True,
         # Calculate current bearings and measurements
         bearing = get_bearing(ownship, ship)
         absolute_bearing = get_absolute_bearing(ownship, ship)
-        angular_size = get_angular_diameter(ownship, ship)
+        # 使用菱形外形的角直徑取代圓形模型
+        angular_size = get_diamond_angular_diameter(ownship, ship)
         
         # Store current measurements (使用表面距離)
         bearings.append(bearing)

@@ -235,3 +235,4 @@ lyapunov_analysis/latex/*.vrb
 monte_carlo_simulation_UAV_vs_UAV/results
 monte_carlo_simulation_B737_vs_UAV/results
 monte_carlo_simulation_Cessna_vs_UAV/results
+MCS_diamond/results
