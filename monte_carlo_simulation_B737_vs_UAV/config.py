@@ -19,7 +19,7 @@ NUM_SIMULATIONS = 1000  # number of Monte Carlo runs
 USE_ABSOLUTE_BEARINGS = True  # True for absolute, False for relative
 
 # Individual trajectory saving options
-SAVE_INDIVIDUAL_TRAJECTORIES = True  # Whether to save individual trajectory plots
+SAVE_INDIVIDUAL_TRAJECTORIES = False  # Whether to save individual trajectory plots
 SAVE_INDIVIDUAL_PARAMETERS = True   # Whether to save individual simulation parameters
 SHOW_INDIVIDUAL_PLOTS = False  # Whether to display individual plots (False = save only)
 

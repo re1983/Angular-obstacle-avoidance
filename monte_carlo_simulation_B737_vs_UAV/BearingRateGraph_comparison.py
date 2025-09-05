@@ -263,7 +263,7 @@ def adj_ownship_heading_absolute(headings_difference, absolute_bearings, bearing
     max_rate_of_turn = ship.max_rate_of_turn[0]
     current_relative_bearing = get_bearing(ship, target_ship)
     # avoidance_gain = angular_sizes[-1] ** 2 * 3
-    K_GAIN = 2
+    K_GAIN = 32
 
     if len(absolute_bearings_difference) >= 1:
         avoidance_gain = (angular_sizes[-1] - ALPHA_TRIG) * K_GAIN
