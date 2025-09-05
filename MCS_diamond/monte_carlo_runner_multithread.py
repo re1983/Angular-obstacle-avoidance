@@ -137,6 +137,52 @@ def _save_individual_result(results_dir: str, sim_id: int, result_type: str, sim
     actual_collision_ship_pos = full_result['ship_positions'][min_dist_idx]
     actual_collision_midpoint = (actual_collision_ownship_pos + actual_collision_ship_pos) / 2
 
+    # 新增：若不需存參數檔，直接只處理軌跡圖（若啟用）後返回
+    if not SAVE_INDIVIDUAL_PARAMETERS:
+        if SAVE_INDIVIDUAL_TRAJECTORIES:
+            # (保留原本繪圖邏輯)
+            fig, ax = plt.subplots(figsize=(10, 8))
+            ownship_size = full_result['ownship_size']
+            ship_size = full_result['ship_size']
+            ownship_velocity = OWNSHIP_VELOCITY
+            ship_velocity = simulation_data['ship_parameters']['velocity']
+            ax.plot(full_result['ownship_positions'][:, 1], full_result['ownship_positions'][:, 0],
+                    'b-', linewidth=1, label=f'Ownship (size: {ownship_size:.1f}m, v: {ownship_velocity:.1f}m/s)', alpha=0.8)
+            ax.plot(full_result['ship_positions'][:, 1], full_result['ship_positions'][:, 0],
+                    'r-', linewidth=1, label=f'Ship A (size: {ship_size:.1f}m, v: {ship_velocity:.1f}m/s)', alpha=0.8)
+            collision_info = simulation_data.get('collision_info', {})
+            if collision_info and 'predicted_collision_point' in collision_info and collision_info['predicted_collision_point'] is not None:
+                try:
+                    p = collision_info['predicted_collision_point']
+                    px_east = p[1]; py_north = p[0]
+                    ax.plot(px_east, py_north, marker='x', color='red', markersize=10,
+                            markeredgewidth=2, linestyle='None', label='No-Action Collision Point')
+                except Exception:
+                    pass
+            _add_trajectory_endpoint_arrows(ax, full_result['ownship_positions'], 'blue')
+            _add_trajectory_endpoint_arrows(ax, full_result['ship_positions'], 'red')
+            _add_trajectory_section(ax, full_result['ownship_positions'], 'blue', ownship_velocity)
+            _add_trajectory_section(ax, full_result['ship_positions'], 'red', ship_velocity)
+            ax.plot(full_result['ownship_positions'][0, 1], full_result['ownship_positions'][0, 0], 'bo', markersize=5, label='Ownship Start')
+            ax.plot(full_result['ship_positions'][0, 1], full_result['ship_positions'][0, 0], 'ro', markersize=5,
+                    label=f"Ship A Start (rate turn: {simulation_data['ship_parameters'].get('rate_of_turn', 0.0):.2f} deg/s)")
+            ax.plot(full_result['goal'].position[1], full_result['goal'].position[0], 'g*', markersize=10, label='Goal')
+            min_dist_idx = int(np.argmin(full_result['distances']))
+            ax.plot(full_result['ownship_positions'][min_dist_idx, 1], full_result['ownship_positions'][min_dist_idx, 0], 'ko', markersize=2, alpha=0.5)
+            ax.plot(full_result['ship_positions'][min_dist_idx, 1], full_result['ship_positions'][min_dist_idx, 0], 'ko', markersize=2, alpha=0.5)
+            ax.plot([full_result['ownship_positions'][min_dist_idx, 1], full_result['ship_positions'][min_dist_idx, 1]],
+                    [full_result['ownship_positions'][min_dist_idx, 0], full_result['ship_positions'][min_dist_idx, 0]],
+                    'k--', alpha=0.5, label=f"Min Surface Distance: {np.min(full_result['distances']):.2f}m")
+            ax.set_xlabel('East (m)'); ax.set_ylabel('North (m)')
+            ax.set_title(f'Simulation #{sim_id:05d} - {result_type.upper()}')
+            ax.legend(loc='upper right'); ax.grid(True, alpha=0.3); ax.axis('equal')
+            plt.tight_layout()
+            out_png = save_dir / f"{sim_id:05d}.png"
+            plt.savefig(out_png, dpi=600, bbox_inches='tight')
+            plt.close()
+        return  # 不寫 .txt 檔
+
+    # 原本寫參數檔邏輯（保持不變）
     param_file = save_dir / f"{sim_id:05d}.txt"
     with open(param_file, 'w', encoding='utf-8') as f:
         f.write(f"Monte Carlo Simulation #{sim_id:05d}\n")
@@ -564,17 +610,26 @@ class MonteCarloRunner:
         """儲存個別模擬結果"""
         sim_id = simulation_data['simulation_id']
         result_type = simulation_data['result']['success']
-        
-        # 決定儲存目錄
         save_dir = self.results_dir / result_type
-        
-        # 獲取實際碰撞位置（最小距離點）
+
         min_dist_idx = np.argmin(full_result['distances'])
         actual_collision_ownship_pos = full_result['ownship_positions'][min_dist_idx]
         actual_collision_ship_pos = full_result['ship_positions'][min_dist_idx]
         actual_collision_midpoint = (actual_collision_ownship_pos + actual_collision_ship_pos) / 2
-        
-        # 儲存參數文件
+
+        # 新增：若不需存參數檔，僅依需要存圖後返回
+        if not SAVE_INDIVIDUAL_PARAMETERS:
+            if SAVE_INDIVIDUAL_TRAJECTORIES:
+                self.save_trajectory_plot(
+                    full_result,
+                    save_dir / f"{sim_id:05d}.png",
+                    sim_id,
+                    result_type,
+                    simulation_data['ship_parameters'],
+                    simulation_data.get('collision_info')
+                )
+            return
+
         param_file = save_dir / f"{sim_id:05d}.txt"
         with open(param_file, 'w', encoding='utf-8') as f:
             f.write(f"Monte Carlo Simulation #{sim_id:05d}\n")

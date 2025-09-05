@@ -15,9 +15,9 @@ k_categories = [f'K={k}' for k in k_gain]
 # 1. 左侧图 - Mean Arrival Time
 bars1 = ax1.bar(k_categories, mean_arrival_time, alpha=0.8, color='skyblue', 
                 edgecolor='navy', width=0.6)
-ax1.set_xlabel('K Gain Categories', fontsize=12, fontweight='bold')
+# ax1.set_xlabel('K Gain Categories', fontsize=12, fontweight='bold')
 ax1.set_ylabel('Mean Arrival Time (s)', fontsize=12, fontweight='bold')
-ax1.set_title('Mean Arrival Time by K Gain', fontsize=14, fontweight='bold')
+ax1.set_title('Mean Arrival Time by k', fontsize=14, fontweight='bold')
 ax1.grid(True, alpha=0.3, axis='y')
 
 # 在柱子上显示数值
@@ -32,9 +32,9 @@ ax1.set_ylim(100, 115)
 # 2. 右侧图 - Mean Minimum Distance  
 bars2 = ax2.bar(k_categories, mean_minimum_distance, alpha=0.8, color='lightcoral', 
                 edgecolor='darkred', width=0.6)
-ax2.set_xlabel('K Gain Categories', fontsize=12, fontweight='bold')
+# ax2.set_xlabel('K Gain Categories', fontsize=12, fontweight='bold')
 ax2.set_ylabel('Mean Minimum Distance (m)', fontsize=12, fontweight='bold')
-ax2.set_title('Mean Minimum Distance by K Gain', fontsize=14, fontweight='bold')
+ax2.set_title('Mean Minimum Distance by k', fontsize=14, fontweight='bold')
 ax2.grid(True, alpha=0.3, axis='y')
 
 # 在柱子上显示数值
