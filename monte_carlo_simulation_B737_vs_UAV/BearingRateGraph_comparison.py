@@ -262,7 +262,10 @@ def adj_ownship_heading_absolute(headings_difference, absolute_bearings, bearing
     heading = ship.heading
     max_rate_of_turn = ship.max_rate_of_turn[0]
     current_relative_bearing = get_bearing(ship, target_ship)
-    # avoidance_gain = angular_sizes[-1] ** 2 * 3
+    angular_noises = angular_sizes[-1] + np.random.normal(0, 0.09)
+    if angular_noises > ALPHA_TRIG:
+        print(f"Angular Size: {angular_sizes[-1]:.4f}°, with noise: {angular_noises:.4f}°")
+
     K_GAIN = 32
 
     if len(absolute_bearings_difference) >= 1:
