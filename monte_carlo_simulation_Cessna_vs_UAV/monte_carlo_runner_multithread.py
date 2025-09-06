@@ -338,7 +338,8 @@ def _run_simulation_task(sim_id: int, results_dir: str, ownship_config: dict, go
     }
 
     # Save artifacts (text + optional image) inside the worker
-    _save_individual_result(results_dir, sim_id, simulation_data['result']['success'], simulation_data, result)
+    if SAVE_INDIVIDUAL_PARAMETERS:
+        _save_individual_result(results_dir, sim_id, simulation_data['result']['success'], simulation_data, result)
 
     return simulation_data
 
@@ -538,7 +539,8 @@ class MonteCarloRunner:
         }
         
         # 儲存個別結果
-        self.save_individual_result(simulation_data, result)
+        if SAVE_INDIVIDUAL_PARAMETERS:
+            self.save_individual_result(simulation_data, result)
         
         return simulation_data
     
