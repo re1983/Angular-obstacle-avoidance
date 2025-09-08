@@ -1,6 +1,6 @@
 """
 Monte Carlo Results Analyzer and Visualizer
-Analyze Monte Carlo simulation results and generate overview plots
+分析蒙地卡羅模擬結果並生成總覽圖表
 """
 
 import numpy as np
@@ -11,7 +11,7 @@ from datetime import datetime
 import glob
 
 class MonteCarloAnalyzer:
-    """Monte Carlo results analyzer"""
+    """蒙地卡羅結果分析器"""
     
     def __init__(self, results_dir):
         self.results_dir = Path(results_dir)
@@ -19,7 +19,7 @@ class MonteCarloAnalyzer:
         self.results = self.load_all_results()
         
     def load_all_results(self):
-        """Load all simulation results"""
+        """載入所有模擬結果"""
         results = {
             'successful': [],
             'collision': [],
@@ -40,7 +40,7 @@ class MonteCarloAnalyzer:
         return results
     
     def parse_result_file(self, txt_file):
-        """Parse a single result file"""
+        """解析單一結果文件"""
         data = {}
         current_section = None
         
@@ -80,7 +80,7 @@ class MonteCarloAnalyzer:
                     key = key.strip()
                     value = value.strip()
                     
-                    # Try converting values to appropriate types
+                    # 嘗試轉換數值
                     try:
                         if value.lower() == 'none':
                             value = None
@@ -89,29 +89,29 @@ class MonteCarloAnalyzer:
                         elif value.lower() == 'false':
                             value = False
                         elif value.startswith('[') and value.endswith(']'):
-                            # Handle list format [x, y, z]
+                            # 處理列表格式 [x, y, z]
                             value = value[1:-1]  # 移除 []
                             if ',' in value:
-                                # Split and convert into a numeric list
+                                # 分割並轉換為數字列表
                                 value = [float(x.strip()) for x in value.split(',')]
                             else:
                                 value = [float(value)]
                         else:
-                            # Handle values with units (e.g., "21.59s")
+                            # 處理帶單位的數值（如 "21.59s"）
                             if value.endswith('s') and len(value) > 1:
                                 try:
-                                    value = float(value[:-1])  # Remove 's' and convert to float
+                                    value = float(value[:-1])  # 移除 's' 並轉換為數字
                                 except ValueError:
                                     pass
                             else:
-                                # Try converting to a number
+                                # 嘗試轉換為數字
                                 if '.' in value:
                                     value = float(value)
                                 else:
                                     try:
                                         value = int(value)
                                     except ValueError:
-                                        pass  # Keep as string
+                                        pass  # 保持為字符串
                     except:
                         pass
                     
@@ -120,32 +120,15 @@ class MonteCarloAnalyzer:
         return data
     
     def generate_overview_plots(self):
-        """Generate overview analysis plots"""
-        # Set fonts (ensure minus sign renders correctly)
+        """生成總覽分析圖"""
+        # 設定中文字體
         plt.rcParams['font.sans-serif'] = ['SimHei', 'DejaVu Sans']
         plt.rcParams['axes.unicode_minus'] = False
         
-        # Use a 3x2 layout (six plots)
-        fig, axes = plt.subplots(3, 2, figsize=(10, 12))
-        # Subtitle: show total simulations and percentages by result type
-        counts = {k: len(self.results.get(k, [])) for k in ['successful', 'collision', 'timeout']}
-        total = sum(counts.values())
-        if total > 0:
-            success_pct = counts['successful'] / total * 100
-            collision_pct = counts['collision'] / total * 100
-            timeout_pct = counts['timeout'] / total * 100
-        else:
-            success_pct = collision_pct = timeout_pct = 0.0
-        subtitle = (
-            f"Total: {total} | "
-            f"Success: {counts['successful']} ({success_pct:.1f}%) | "
-            f"Collision: {counts['collision']} ({collision_pct:.1f}%) | "
-            f"Timeout: {counts['timeout']} ({timeout_pct:.1f}%)"
-        )
-        # fig.suptitle(subtitle, fontsize=16)
-
-
-        # Collect all results
+        fig, axes = plt.subplots(3, 3, figsize=(18, 18))  # 改為 3x3 布局
+        fig.suptitle(f'Monte Carlo Simulation Overview - {self.timestamp}', fontsize=16)
+        
+        # 收集所有數據
         all_results = []
         for result_type, results_list in self.results.items():
             all_results.extend(results_list)
@@ -154,118 +137,181 @@ class MonteCarloAnalyzer:
             print("No results to analyze!")
             return
         
-        # Minimum distance distribution histogram
-        ax_min_dist = axes[0, 0]
+        # 1. 結果分布餅圖
+        ax1 = axes[0, 0]
+        result_counts = {k: len(v) for k, v in self.results.items()}
+        labels = []
+        sizes = []
+        colors = ['green', 'red', 'orange']
+        
+        for i, (result_type, count) in enumerate(result_counts.items()):
+            if count > 0:
+                labels.append(f'{result_type.title()} ({count})')
+                sizes.append(count)
+        
+        if sizes:
+            ax1.pie(sizes, labels=labels, autopct='%1.1f%%', colors=colors[:len(sizes)])
+        ax1.set_title('Simulation Results Distribution')
+        
+        # 2. 最小距離分布直方圖
+        ax2 = axes[0, 1]
         min_distances = []
         for result in all_results:
             if 'sim_results' in result and 'min_distance' in result['sim_results']:
                 min_distances.append(result['sim_results']['min_distance'])
         
         if min_distances:
-            ax_min_dist.hist(min_distances, bins=50, alpha=0.7, edgecolor='black', color='orange')
-            ax_min_dist.axvline(np.mean(min_distances), color='red', linestyle='--', 
-                                label=f'Mean: {np.mean(min_distances):.2f}m')
-            ax_min_dist.set_xlabel('Minimum Distance (m)', fontsize=12, fontweight='bold')
-            ax_min_dist.set_ylabel('Frequency', fontsize=12, fontweight='bold')
-            ax_min_dist.set_title('Minimum Distance Distribution', fontsize=14, fontweight='bold')
-            ax_min_dist.legend()
-            ax_min_dist.grid(True, alpha=0.3)
-
-        # Total simulation time distribution histogram (new)
-        ax_sim_time = axes[0, 1]
-        sim_times = []
-        for result in all_results:
-            if 'sim_results' in result and 'simulation_time' in result['sim_results']:
-                sim_times.append(result['sim_results']['simulation_time'])
-
-        if sim_times:
-            ax_sim_time.hist(sim_times, bins=50, alpha=0.7, edgecolor='black', color='steelblue')
-            ax_sim_time.axvline(np.mean(sim_times), color='red', linestyle='--',
-                                label=f'Mean: {np.mean(sim_times):.2f}s')
-            ax_sim_time.set_xlabel('Simulation Time (s)', fontsize=12, fontweight='bold')
-            ax_sim_time.set_ylabel('Frequency', fontsize=12, fontweight='bold')
-            ax_sim_time.set_title('Goal Reached Time Distribution', fontsize=14, fontweight='bold')
-            ax_sim_time.legend()
-            ax_sim_time.grid(True, alpha=0.3)
+            ax2.hist(min_distances, bins=15, alpha=0.7, edgecolor='black')
+            ax2.axvline(np.mean(min_distances), color='red', linestyle='--', 
+                       label=f'Mean: {np.mean(min_distances):.2f}m')
+            ax2.set_xlabel('Minimum Distance (m)')
+            ax2.set_ylabel('Frequency')
+            ax2.set_title('Minimum Distance Distribution')
+            ax2.legend()
+            ax2.grid(True, alpha=0.3)
         
-        # Target Ship parameter distribution - velocity
-        ax_vel = axes[1, 0]
+        # 3. Ship A 參數分佈 - 速度
+        ax3 = axes[0, 2]
         velocities = []
         for result in all_results:
             if 'ship_params' in result and 'velocity' in result['ship_params']:
                 velocities.append(result['ship_params']['velocity'])
         
         if velocities:
-            ax_vel.hist(velocities, bins=50, alpha=0.7, edgecolor='black', color='skyblue')
-            ax_vel.set_xlabel('Target Ship Velocity (m/s)', fontsize=12, fontweight='bold')
-            ax_vel.set_ylabel('Frequency', fontsize=12, fontweight='bold')
-            ax_vel.set_title('Target Ship Velocity Distribution', fontsize=14, fontweight='bold')
-            ax_vel.grid(True, alpha=0.3)
+            ax3.hist(velocities, bins=10, alpha=0.7, edgecolor='black', color='skyblue')
+            ax3.set_xlabel('Ship A Velocity (m/s)')
+            ax3.set_ylabel('Frequency')
+            ax3.set_title('Ship A Velocity Distribution')
+            ax3.grid(True, alpha=0.3)
         
-        # Target Ship parameter distribution - heading
-        ax_heading = axes[1, 1]
+        # 4. Ship A 參數分佈 - 航向
+        ax4 = axes[1, 0]
         headings = []
         for result in all_results:
             if 'ship_params' in result and 'heading' in result['ship_params']:
                 headings.append(result['ship_params']['heading'])
         
         if headings:
-            ax_heading.hist(headings, bins=50, alpha=0.7, edgecolor='black', color='lightgreen')
-            ax_heading.set_xlabel('Target Ship Heading (degrees)', fontsize=12, fontweight='bold')
-            ax_heading.set_ylabel('Frequency', fontsize=12, fontweight='bold')
-            ax_heading.set_title('Target Ship Heading Distribution', fontsize=14, fontweight='bold')
-            ax_heading.grid(True, alpha=0.3)
+            ax4.hist(headings, bins=18, alpha=0.7, edgecolor='black', color='lightgreen')
+            ax4.set_xlabel('Ship A Heading (degrees)')
+            ax4.set_ylabel('Frequency')
+            ax4.set_title('Ship A Heading Distribution')
+            ax4.grid(True, alpha=0.3)
         
-        # Collision location distribution
-        ax_collision_loc = axes[2, 0]
+        # 5. Ship A 參數分佈 - 轉彎率 (新增)
+        ax5 = axes[1, 1]
+        rates_of_turn = []
+        for result in all_results:
+            if 'ship_params' in result and 'rate_of_turn' in result['ship_params']:
+                rates_of_turn.append(result['ship_params']['rate_of_turn'])
+        
+        if rates_of_turn:
+            ax5.hist(rates_of_turn, bins=15, alpha=0.7, edgecolor='black', color='orange')
+            ax5.axvline(0, color='red', linestyle='--', alpha=0.8, label='Straight Line')
+            ax5.set_xlabel('Ship A Rate of Turn (°/s)')
+            ax5.set_ylabel('Frequency')
+            ax5.set_title('Ship A Rate of Turn Distribution')
+            ax5.legend()
+            ax5.grid(True, alpha=0.3)
+        
+        # 6. 碰撞位置分布
+        ax6 = axes[1, 2]
         collision_ratios = []
         for result in all_results:
             if 'ship_params' in result and 'collision_ratio' in result['ship_params']:
-                collision_ratios.append(result['ship_params']['collision_ratio'] * 100)  # Convert to percentage
+                collision_ratios.append(result['ship_params']['collision_ratio'] * 100)  # 轉換為百分比
         
         if collision_ratios:
-            ax_collision_loc.hist(collision_ratios, bins=50, alpha=0.7, edgecolor='black', color='coral')
-            ax_collision_loc.set_xlabel('Collision Location (% of Ownship Path)', fontsize=12, fontweight='bold')
-            ax_collision_loc.set_ylabel('Frequency', fontsize=12, fontweight='bold')
-            ax_collision_loc.set_title('Collision Location Distribution', fontsize=14, fontweight='bold')
-            ax_collision_loc.grid(True, alpha=0.3)
+            ax6.hist(collision_ratios, bins=10, alpha=0.7, edgecolor='black', color='coral')
+            ax6.set_xlabel('Collision Location (% of Ownship Path)')
+            ax6.set_ylabel('Frequency')
+            ax6.set_title('Collision Location Distribution')
+            ax6.grid(True, alpha=0.3)
         
-        # Target Ship size distribution
-        ax_size = axes[2, 1]
+        # 7. Ship A 大小分布
+        ax7 = axes[2, 0]
         sizes = []
         for result in all_results:
             if 'ship_params' in result and 'size' in result['ship_params']:
                 sizes.append(result['ship_params']['size'])
         
         if sizes:
-            ax_size.hist(sizes, bins=50, alpha=0.7, edgecolor='black', color='purple')
-            ax_size.set_xlabel('Target Ship Size (m)', fontsize=12, fontweight='bold')
-            ax_size.set_ylabel('Frequency', fontsize=12, fontweight='bold')
-            ax_size.set_title('Target Ship Size Distribution', fontsize=14, fontweight='bold')
-            ax_size.grid(True, alpha=0.3)
+            ax7.hist(sizes, bins=10, alpha=0.7, edgecolor='black', color='purple')
+            ax7.set_xlabel('Ship A Size (m)')
+            ax7.set_ylabel('Frequency')
+            ax7.set_title('Ship A Size Distribution')
+            ax7.grid(True, alpha=0.3)
+        
+        # 8. 結果類型vs最小距離的散點圖
+        ax8 = axes[2, 1]
+        result_types = []
+        min_dists_scatter = []
+        colors_scatter = []
+        color_map = {'successful': 'green', 'collision': 'red', 'timeout': 'orange'}
+        
+        for result in all_results:
+            if 'sim_results' in result and 'min_distance' in result['sim_results']:
+                result_types.append(result['result_type'])
+                min_dists_scatter.append(result['sim_results']['min_distance'])
+                colors_scatter.append(color_map.get(result['result_type'], 'gray'))
+        
+        if result_types:
+            # 為每個結果類型創建數值
+            type_to_num = {'successful': 2, 'timeout': 1, 'collision': 0}
+            y_values = [type_to_num[rt] for rt in result_types]
+            
+            ax8.scatter(min_dists_scatter, y_values, c=colors_scatter, alpha=0.7, s=50)
+            ax8.set_xlabel('Minimum Distance (m)')
+            ax8.set_ylabel('Result Type')
+            ax8.set_yticks([0, 1, 2])
+            ax8.set_yticklabels(['Collision', 'Timeout', 'Successful'])
+            ax8.set_title('Result Type vs Minimum Distance')
+            ax8.grid(True, alpha=0.3)
+        
+        # 9. 轉彎率 vs 最小距離散點圖 (新增)
+        ax9 = axes[2, 2]
+        turn_rates_scatter = []
+        min_dists_vs_turn = []
+        colors_vs_turn = []
+        
+        for result in all_results:
+            if ('ship_params' in result and 'rate_of_turn' in result['ship_params'] and 
+                'sim_results' in result and 'min_distance' in result['sim_results']):
+                turn_rates_scatter.append(result['ship_params']['rate_of_turn'])
+                min_dists_vs_turn.append(result['sim_results']['min_distance'])
+                colors_vs_turn.append(color_map.get(result['result_type'], 'gray'))
+        
+        if turn_rates_scatter:
+            ax9.scatter(turn_rates_scatter, min_dists_vs_turn, c=colors_vs_turn, alpha=0.7, s=50)
+            ax9.axvline(0, color='red', linestyle='--', alpha=0.5, label='Straight Line')
+            ax9.set_xlabel('Ship A Rate of Turn (°/s)')
+            ax9.set_ylabel('Minimum Distance (m)')
+            ax9.set_title('Turn Rate vs Minimum Distance')
+            ax9.legend()
+            ax9.grid(True, alpha=0.3)
         
         plt.tight_layout()
         
-    # Save overview plot
+        # 儲存圖表
         overview_file = self.results_dir / f"overview_{self.timestamp}.png"
-        plt.savefig(overview_file, dpi=600, bbox_inches='tight')
+        plt.savefig(overview_file, dpi=300, bbox_inches='tight')
         print(f"Overview plot saved to: {overview_file}")
         plt.close()
     
     def generate_trajectory_samples(self, max_samples=5):
-        """Generate trajectory sample plots"""
-        # Select samples from each result category
+        """生成軌跡樣本圖"""
+        # 從每個類別選取樣本
         sample_results = {}
         for result_type, results_list in self.results.items():
             if results_list:
-                # Take the first few samples
+                # 選取前幾個樣本
                 sample_results[result_type] = results_list[:min(max_samples, len(results_list))]
         
         if not any(sample_results.values()):
             print("No trajectory samples to plot!")
             return
         
-    # Create a figure for each category with its samples
+        # 為每個樣本創建單獨的圖
         for result_type, samples in sample_results.items():
             if not samples:
                 continue
@@ -274,21 +320,21 @@ class MonteCarloAnalyzer:
             if len(samples) == 1:
                 axes = [axes]
             
-            fig.suptitle(f'{result_type.title()} Trajectory Samples - {self.timestamp}', fontsize=16)
+            fig.suptitle(f'{result_type.title()} Trajectory Samples - {self.timestamp}', fontsize=14)
             
             for i, sample in enumerate(samples):
                 ax = axes[i]
                 sim_id = sample.get('simulation_id', i+1)
                 
-                # Load the corresponding trajectory image if present
+                # 載入對應的軌跡圖片（如果存在）
                 png_file = self.results_dir / result_type / f"{sim_id:05d}.png"
                 if png_file.exists():
-                    # Display the existing trajectory image
+                    # 顯示已存在的軌跡圖
                     img = plt.imread(png_file)
                     ax.imshow(img)
                     ax.axis('off')
                 else:
-                    # If no image, show parameter summary text
+                    # 如果沒有圖片，顯示參數信息
                     ax.text(0.5, 0.5, f'Simulation #{sim_id:05d}\n\n' + 
                            self.format_sample_info(sample), 
                            ha='center', va='center', transform=ax.transAxes,
@@ -296,18 +342,18 @@ class MonteCarloAnalyzer:
                     ax.set_xlim(0, 1)
                     ax.set_ylim(0, 1)
                 
-                ax.set_title(f'Sample {i+1} (#{sim_id:05d})', fontsize=14, fontweight='bold')
+                ax.set_title(f'Sample {i+1} (#{sim_id:05d})')
             
             plt.tight_layout()
             
-            # Save sample figure
+            # 儲存樣本圖
             sample_file = self.results_dir / f"trajectories_{result_type}_{self.timestamp}.png"
-            plt.savefig(sample_file, dpi=600, bbox_inches='tight')
+            plt.savefig(sample_file, dpi=300, bbox_inches='tight')
             print(f"Trajectory samples for {result_type} saved to: {sample_file}")
             plt.close()
     
     def format_sample_info(self, sample):
-        """Format sample info for display"""
+        """格式化樣本信息用於顯示"""
         info_parts = []
         
         if 'ship_params' in sample:
@@ -316,7 +362,7 @@ class MonteCarloAnalyzer:
             info_parts.append(f"Heading: {ship_params.get('heading', 'N/A'):.1f}°")
             info_parts.append(f"Size: {ship_params.get('size', 'N/A'):.2f} m")
             
-            # Show rate of turn
+            # 顯示轉彎率
             rate_of_turn = ship_params.get('rate_of_turn', 0.0)
             if abs(rate_of_turn) < 0.01:
                 info_parts.append("Motion: Straight line")
@@ -343,7 +389,7 @@ class MonteCarloAnalyzer:
         return '\n'.join(info_parts)
     
     def print_summary(self):
-        """Print detailed statistics summary"""
+        """列印詳細統計摘要"""
         print(f"\n{'='*60}")
         print(f"Monte Carlo Analysis Summary - {self.timestamp}")
         print(f"{'='*60}")
@@ -357,13 +403,13 @@ class MonteCarloAnalyzer:
         
         print(f"{'Total':>12}: {total_sims:>3}")
         
-    # Aggregated statistics
+        # 統計信息
         all_results = []
         for results_list in self.results.values():
             all_results.extend(results_list)
         
         if all_results:
-            # Minimum distance statistics
+            # 最小距離統計
             min_distances = [r['sim_results']['min_distance'] for r in all_results 
                            if 'sim_results' in r and 'min_distance' in r['sim_results']]
             
@@ -374,7 +420,7 @@ class MonteCarloAnalyzer:
                 print(f"  Min minimum distance:  {np.min(min_distances):.3f} m")
                 print(f"  Max minimum distance:  {np.max(min_distances):.3f} m")
             
-            # Target Ship parameter statistics
+            # Ship A 參數統計
             velocities = [r['ship_params']['velocity'] for r in all_results 
                          if 'ship_params' in r and 'velocity' in r['ship_params']]
             headings = [r['ship_params']['heading'] for r in all_results 
@@ -385,7 +431,7 @@ class MonteCarloAnalyzer:
                            if 'ship_params' in r and 'rate_of_turn' in r['ship_params']]
             
             if velocities:
-                print(f"\nTarget Ship Parameter Statistics:")
+                print(f"\nShip A Parameter Statistics:")
                 print(f"  Velocity - Mean: {np.mean(velocities):.2f} m/s, Std: {np.std(velocities):.2f} m/s")
                 print(f"           - Range: {np.min(velocities):.2f} - {np.max(velocities):.2f} m/s")
             if headings:
@@ -397,11 +443,11 @@ class MonteCarloAnalyzer:
             if rates_of_turn:
                 print(f"  Rate of Turn - Mean: {np.mean(rates_of_turn):.2f}°/s, Std: {np.std(rates_of_turn):.2f}°/s")
                 print(f"               - Range: {np.min(rates_of_turn):.2f}° - {np.max(rates_of_turn):.2f}°/s")
-                # Proportion of straight-line motion
+                # 統計直線運動的比例
                 straight_line_count = sum(1 for rot in rates_of_turn if abs(rot) < 0.01)
                 print(f"               - Straight line motion: {straight_line_count}/{len(rates_of_turn)} ({straight_line_count/len(rates_of_turn)*100:.1f}%)")
             
-            # Actual collision location statistics
+            # 新增：實際碰撞位置統計
             collision_times = [r['actual_collision']['Time at min distance'] for r in all_results 
                              if 'actual_collision' in r and 'Time at min distance' in r['actual_collision']]
             
@@ -410,7 +456,7 @@ class MonteCarloAnalyzer:
                 print(f"  Time at min distance - Mean: {np.mean(collision_times):.2f}s, Std: {np.std(collision_times):.2f}s")
                 print(f"                       - Range: {np.min(collision_times):.2f}s - {np.max(collision_times):.2f}s")
             
-            # Configuration summary
+            # 新增：配置信息摘要
             if all_results and 'sim_params' in all_results[0]:
                 sim_params = all_results[0]['sim_params']
                 print(f"\nSimulation Configuration:")
@@ -441,14 +487,14 @@ class MonteCarloAnalyzer:
                         print(f"\nGoal Position: {pos}")
 
 def main():
-    """Main function - analyze the latest results"""
+    """主函數 - 分析最新的結果"""
     results_base_dir = Path("results")
     
     if not results_base_dir.exists():
         print("No results directory found!")
         return
     
-    # Find the latest results directory
+    # 找到最新的結果目錄
     result_dirs = list(results_base_dir.glob("results_*"))
     if not result_dirs:
         print("No result directories found!")
@@ -457,7 +503,7 @@ def main():
     latest_dir = max(result_dirs, key=lambda x: x.name)
     print(f"Analyzing results from: {latest_dir}")
     
-    # Create analyzer and generate reports
+    # 創建分析器並生成報告
     analyzer = MonteCarloAnalyzer(latest_dir)
     analyzer.print_summary()
     analyzer.generate_overview_plots()

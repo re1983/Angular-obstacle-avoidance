@@ -11,15 +11,15 @@ import numpy as np
 
 # Time parameters (from BearingRateGraph_cleaned.py defaults)
 DELTA_TIME = 0.01  # seconds
-MAX_TIME_STEPS = 75000  # maximum simulation steps (increased for longer simulations)
+MAX_TIME_STEPS = 750000  # maximum simulation steps (increased for longer simulations)
 MAX_SIMULATION_TIME = MAX_TIME_STEPS * DELTA_TIME  # seconds
 
 # Monte Carlo parameters
-NUM_SIMULATIONS = 1000  # number of Monte Carlo runs
+NUM_SIMULATIONS = 10000  # number of Monte Carlo runs
 USE_ABSOLUTE_BEARINGS = True  # True for absolute, False for relative
 
 # Individual trajectory saving options
-SAVE_INDIVIDUAL_TRAJECTORIES = True  # Whether to save individual trajectory plots
+SAVE_INDIVIDUAL_TRAJECTORIES = False  # Whether to save individual trajectory plots
 SAVE_INDIVIDUAL_PARAMETERS = True   # Whether to save individual simulation parameters
 SHOW_INDIVIDUAL_PLOTS = False  # Whether to display individual plots (False = save only)
 
@@ -40,7 +40,7 @@ GOAL_POSITION = [1500.0, 0.0, 0.0]  # [North, East, Down]
 SHIP_A_SIZE_RANGE = [1.0, 3.0]  # [min, max] m
 SHIP_A_VELOCITY_RANGE = [12, 18]  # [min, max] m/s
 SHIP_A_HEADING_RANGE = [-180.0, 180.0]  # [min, max] degrees
-SHIP_A_MAX_RATE_OF_TURN = [0.0, 0.0]  # deg/s (fixed) - straight line motion
+SHIP_A_MAX_RATE_OF_TURN = [-3.0, 3.0]  # deg/s (fixed) - straight line motion
 SHIP_A_VELOCITY_LIMIT = [0.5, 10.0]  # [min, max] m/s (original default, not used)
 
 # =============================================================================

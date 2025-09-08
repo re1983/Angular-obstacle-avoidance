@@ -7,6 +7,9 @@ import math
 DIAMOND_LENGTH_M = 8.28
 DIAMOND_WINGSPAN_M = 11.00
 
+DIAMOND_LENGTH_M = 39.47
+DIAMOND_WINGSPAN_M = 34.32
+
 # Default simulation parameters
 DEFAULT_OWNSHIP_CONFIG = {
     "name": "Ownship",
@@ -349,9 +352,9 @@ def adj_ownship_heading_absolute(headings_difference, absolute_bearings, bearing
     heading = ship.heading
     max_rate_of_turn = ship.max_rate_of_turn[0]
     current_relative_bearing = get_bearing(ship, target_ship)
-    noise = np.random.normal(1, 0.1)
+    # noise = np.random.normal(1, 0.1)
     # print(noise)
-    angular_noises = angular_sizes[-1] #* noise
+    angular_noises = angular_sizes[-1] #+ np.random.normal(0, 0.088)
     # if angular_noises > ALPHA_TRIG:
     #     print(f"Angular Size: {angular_sizes[-1]:.4f}°, with noise: {angular_noises:.4f}°")
 

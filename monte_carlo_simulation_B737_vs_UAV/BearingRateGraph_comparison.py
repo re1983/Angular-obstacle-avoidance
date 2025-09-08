@@ -274,12 +274,12 @@ def adj_ownship_heading_absolute(headings_difference, absolute_bearings, bearing
         if angular_sizes[-1] > ALPHA_TRIG:
             avoidance_gain = (angular_noises - ALPHA_TRIG) * K_GAIN
             # rounded_rate = np.round(absolute_bearings_difference[-1], 5)
-            # rounded_rate = min(np.abs(absolute_bearings_difference[-1]), np.abs(bearings_difference[-1]))
+            # bearings_rate = min(np.abs(absolute_bearings_difference[-1]), np.abs(bearings_difference[-1]))
             bearings_rate = absolute_bearings_difference[-1] #+ np.random.normal(0, 0.022)
-            # rounded_rate = bearings_difference[-1]
+            # bearings_rate = bearings_difference[-1]
             if abs(bearings_rate*delta_time) <= angular_noises: #or abs(bearings_difference[-1]*delta_time) <= angular_sizes[-1]:
 
-                if abs(bearings_rate) <= 1e-5:  # True CBDR (bearing rate ≈ 0)
+                if abs(bearings_rate) <= 1e-4:  # True CBDR (bearing rate ≈ 0)
                     if current_relative_bearing <= 0:  # Ship is on port side (left)
                         if abs(current_relative_bearing) <= 90:
                             rate_of_turn = -avoidance_gain  # Turn left (negative)

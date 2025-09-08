@@ -142,7 +142,7 @@ class MonteCarloAnalyzer:
             f"Collision: {counts['collision']} ({collision_pct:.1f}%) | "
             f"Timeout: {counts['timeout']} ({timeout_pct:.1f}%)"
         )
-        fig.suptitle(subtitle, fontsize=16)
+        # fig.suptitle(subtitle, fontsize=16)
 
 
         # Collect all results
