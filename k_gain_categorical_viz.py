@@ -2,9 +2,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from k_gain import k_gain, mean_arrival_time, mean_minimum_distance
 
-# 设置中文字体支持
-plt.rcParams['font.sans-serif'] = ['SimHei', 'DejaVu Sans']
+# 设置字体和 PDF 输出参数以避免 Type 3 字体
+plt.rcParams['font.sans-serif'] = ['DejaVu Sans', 'Arial', 'Liberation Sans']
+plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['axes.unicode_minus'] = False
+plt.rcParams['pdf.fonttype'] = 42  # 使用 TrueType 字体而不是 Type 3
+plt.rcParams['ps.fonttype'] = 42   # 对 EPS 格式也应用相同设置
+plt.rcParams['text.usetex'] = False  # 确保不使用 LaTeX 渲染
 
 # 创建figure和子图 - 1行2列布局
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
@@ -13,12 +17,12 @@ fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
 k_categories = [f'K={k}' for k in k_gain]
 
 # 1. 左侧图 - Mean Arrival Time
-bars1 = ax1.bar(k_categories, mean_arrival_time, alpha=0.8, color='skyblue', 
+bars1 = ax1.bar(k_categories, mean_arrival_time, color='skyblue', 
                 edgecolor='navy', width=0.6)
 # ax1.set_xlabel('K Gain Categories', fontsize=12, fontweight='bold')
 ax1.set_ylabel('Mean Arrival Time (s)', fontsize=12, fontweight='bold')
 ax1.set_title('Mean Arrival Time by k', fontsize=14, fontweight='bold')
-ax1.grid(True, alpha=0.3, axis='y')
+ax1.grid(True, axis='y', linewidth=0.5, color='gray')
 
 # 在柱子上显示数值
 for bar, time_val in zip(bars1, mean_arrival_time):
@@ -30,12 +34,12 @@ for bar, time_val in zip(bars1, mean_arrival_time):
 ax1.set_ylim(100, 115)
 
 # 2. 右侧图 - Mean Minimum Distance  
-bars2 = ax2.bar(k_categories, mean_minimum_distance, alpha=0.8, color='lightcoral', 
+bars2 = ax2.bar(k_categories, mean_minimum_distance, color='lightcoral', 
                 edgecolor='darkred', width=0.6)
 # ax2.set_xlabel('K Gain Categories', fontsize=12, fontweight='bold')
 ax2.set_ylabel('Mean Minimum Distance (m)', fontsize=12, fontweight='bold')
 ax2.set_title('Mean Minimum Distance by k', fontsize=14, fontweight='bold')
-ax2.grid(True, alpha=0.3, axis='y')
+ax2.grid(True, axis='y', linewidth=0.5, color='gray')
 
 # 在柱子上显示数值
 for bar, dist_val in zip(bars2, mean_minimum_distance):
@@ -63,7 +67,7 @@ plt.savefig('k_gain_analysis.eps', format='eps', dpi=300, bbox_inches='tight')
 plt.savefig('k_gain_analysis.pdf', format='pdf', dpi=300, bbox_inches='tight')
 
 # PNG: 高分辨率光栅格式，备用选择
-plt.savefig('k_gain_analysis.png', format='png', dpi=600, bbox_inches='tight')
+plt.savefig('k_gain_analysis.png', format='png', dpi=300, bbox_inches='tight')
 
 print("图表已保存为以下格式:")
 print("- k_gain_analysis.svg (SVG - 矢量格式，IEEE论文推荐)")

@@ -264,11 +264,11 @@ def adj_ownship_heading_absolute(headings_difference, absolute_bearings, bearing
     current_relative_bearing = get_bearing(ship, target_ship)
     noise = np.random.normal(1, 0.1)
     # print(noise)
-    angular_noises = angular_sizes[-1] * noise
+    angular_noises = angular_sizes[-1]# * noise
     # if angular_noises > ALPHA_TRIG:
     #     print(f"Angular Size: {angular_sizes[-1]:.4f}°, with noise: {angular_noises:.4f}°")
 
-    K_GAIN = 16
+    K_GAIN = 32
 
     if len(absolute_bearings_difference) >= 1:
         if angular_sizes[-1] > ALPHA_TRIG:
@@ -276,7 +276,7 @@ def adj_ownship_heading_absolute(headings_difference, absolute_bearings, bearing
             # rounded_rate = np.round(absolute_bearings_difference[-1], 5)
             # rounded_rate = min(np.abs(absolute_bearings_difference[-1]), np.abs(bearings_difference[-1]))
             bearings_rate = absolute_bearings_difference[-1] #+ np.random.normal(0, 0.022)
-            # rounded_rate = bearings_difference[-1]
+            # bearings_rate = bearings_difference[-1]
             if abs(bearings_rate*delta_time) <= angular_noises: #or abs(bearings_difference[-1]*delta_time) <= angular_sizes[-1]:
 
                 if abs(bearings_rate) <= 1e-5:  # True CBDR (bearing rate ≈ 0)
@@ -293,14 +293,14 @@ def adj_ownship_heading_absolute(headings_difference, absolute_bearings, bearing
 
                 else:
                     # Non-zero bearing rate case
-                    # rate_of_turn = -np.sign(bearings_difference[-1]) * avoidance_gain
-                    if abs(current_relative_bearing) <= 90:  # Target is ahead
-                        rate_of_turn = -np.sign(bearings_rate) * avoidance_gain
-                        # rate_of_turn = -np.sign(bearings_difference[-1]) * avoidance_gain
+                    rate_of_turn = -np.sign(bearings_difference[-1]) * avoidance_gain
+                    # if abs(current_relative_bearing) <= 90:  # Target is ahead
+                    #     rate_of_turn = -np.sign(bearings_rate) * avoidance_gain
+                    #     # rate_of_turn = -np.sign(bearings_difference[-1]) * avoidance_gain
 
-                    else:  # Target is behind
-                        rate_of_turn = np.sign(bearings_rate) * avoidance_gain
-                        # rate_of_turn = np.sign(bearings_difference[-1]) * avoidance_gain
+                    # else:  # Target is behind
+                    #     rate_of_turn = np.sign(bearings_rate) * avoidance_gain
+                    #     # rate_of_turn = np.sign(bearings_difference[-1]) * avoidance_gain
 
         else:
             # if angular_sizes[-1] < ALPHA_TRIG:

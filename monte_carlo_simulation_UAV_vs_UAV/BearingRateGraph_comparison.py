@@ -279,7 +279,7 @@ def adj_ownship_heading_absolute(headings_difference, absolute_bearings, bearing
             # bearings_rate = bearings_difference[-1]
             if abs(bearings_rate*delta_time) <= angular_noises: #or abs(bearings_difference[-1]*delta_time) <= angular_sizes[-1]:
 
-                if abs(bearings_rate) <= 1e-4:  # True CBDR (bearing rate ≈ 0)
+                if abs(bearings_rate) <= 1e-5:  # True CBDR (bearing rate ≈ 0)
                     if current_relative_bearing <= 0:  # Ship is on port side (left)
                         if abs(current_relative_bearing) <= 90:
                             rate_of_turn = -avoidance_gain  # Turn left (negative)

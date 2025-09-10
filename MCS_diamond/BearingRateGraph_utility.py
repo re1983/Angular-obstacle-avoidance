@@ -4,8 +4,8 @@ import math
 
 # 固定的目標機外形參數（先寫死在此檔案）
 # 長度（機頭到機尾的總長，m）與翼展（左翼端到右翼端的總寬，m）
-DIAMOND_LENGTH_M = 8.28
-DIAMOND_WINGSPAN_M = 11.00
+# DIAMOND_LENGTH_M = 8.28
+# DIAMOND_WINGSPAN_M = 11.00
 
 DIAMOND_LENGTH_M = 39.47
 DIAMOND_WINGSPAN_M = 34.32
