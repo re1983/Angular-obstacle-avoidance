@@ -15,11 +15,11 @@ MAX_TIME_STEPS = 750000  # maximum simulation steps (increased for longer simula
 MAX_SIMULATION_TIME = MAX_TIME_STEPS * DELTA_TIME  # seconds
 
 # Monte Carlo parameters
-NUM_SIMULATIONS = 10000  # number of Monte Carlo runs
+NUM_SIMULATIONS = 10  # number of Monte Carlo runs
 USE_ABSOLUTE_BEARINGS = True  # True for absolute, False for relative
 
 # Individual trajectory saving options
-SAVE_INDIVIDUAL_TRAJECTORIES = False  # Whether to save individual trajectory plots
+SAVE_INDIVIDUAL_TRAJECTORIES = True  # Whether to save individual trajectory plots
 SAVE_INDIVIDUAL_PARAMETERS = True   # Whether to save individual simulation parameters
 SHOW_INDIVIDUAL_PLOTS = False  # Whether to display individual plots (False = save only)
 
@@ -38,9 +38,9 @@ GOAL_POSITION = [1500.0, 0.0, 0.0]  # [North, East, Down]
 
 # Ship A (randomized parameters - ranges)
 SHIP_A_SIZE_RANGE = [1.0, 3.0]  # [min, max] m
-SHIP_A_VELOCITY_RANGE = [12, 18]  # [min, max] m/s
-SHIP_A_HEADING_RANGE = [-180.0, 180.0]  # [min, max] degrees
-SHIP_A_MAX_RATE_OF_TURN = [-3.0, 3.0]  # deg/s (fixed) - straight line motion
+SHIP_A_VELOCITY_RANGE = [14, 14]  # [min, max] m/s
+SHIP_A_HEADING_RANGE = [5.0, 5.0]  # [min, max] degrees
+SHIP_A_MAX_RATE_OF_TURN = [0.0, 0.0]  # deg/s (fixed) - straight line motion
 SHIP_A_VELOCITY_LIMIT = [0.5, 10.0]  # [min, max] m/s (original default, not used)
 
 # =============================================================================
@@ -48,7 +48,7 @@ SHIP_A_VELOCITY_LIMIT = [0.5, 10.0]  # [min, max] m/s (original default, not use
 # =============================================================================
 
 # Collision zone along Ownship's path (as percentage of total distance)
-COLLISION_ZONE_START_RATIO = 0.4  # % of the way to goal
+COLLISION_ZONE_START_RATIO = 0.55  # % of the way to goal
 COLLISION_ZONE_END_RATIO = 0.6   # % of the way to goal
 
 # Exclusion zones (distances from start/goal to avoid collisions)

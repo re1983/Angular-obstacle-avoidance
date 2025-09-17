@@ -184,7 +184,7 @@ def _save_individual_result(results_dir: str, sim_id: int, result_type: str, sim
 
     if SAVE_INDIVIDUAL_TRAJECTORIES:
         # 完整版绘图功能 - 移植自类方法版本
-        fig, ax = plt.subplots(figsize=(10, 8))
+        fig, ax = plt.subplots(figsize=(7, 7))
         ownship_size = full_result['ownship_size']
         ship_size = full_result['ship_size']
         ownship_velocity = OWNSHIP_VELOCITY
@@ -241,15 +241,15 @@ def _save_individual_result(results_dir: str, sim_id: int, result_type: str, sim
                 [full_result['ownship_positions'][min_dist_idx, 0], full_result['ship_positions'][min_dist_idx, 0]],
                 'k--', alpha=0.5, label=f"Min Surface Distance: {np.min(full_result['distances']):.2f}m")
 
-        ax.set_xlabel('East (m)', fontsize=12, fontweight='bold')
-        ax.set_ylabel('North (m)', fontsize=12, fontweight='bold')
-        ax.set_title(f'Simulation #{sim_id:05d} - {result_type.upper()}', fontsize=14, fontweight='bold')
+        ax.set_xlabel('East (m)', fontsize=8, fontweight='bold')
+        ax.set_ylabel('North (m)', fontsize=8, fontweight='bold')
+        # ax.set_title(f'Simulation #{sim_id:05d} - {result_type.upper()}', fontsize=14, fontweight='bold')
         ax.legend(loc='upper right')
         ax.grid(True, alpha=0.3)
         ax.axis('equal')
         plt.tight_layout()
         out_png = save_dir / f"{sim_id:05d}.png"
-        plt.savefig(out_png, dpi=600, bbox_inches='tight')
+        plt.savefig(out_png, dpi=300, bbox_inches='tight')
         plt.close()
 
 def _run_simulation_task(sim_id: int, results_dir: str, ownship_config: dict, goal_config: dict, seed: int | None):
