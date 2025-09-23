@@ -49,7 +49,7 @@ plt.rcParams["text.usetex"] = False
 
 @dataclass
 class Params:
-    v_own: float = 0.0  # m/s
+    v_own: float = 1.0  # m/s
     v_intr: float = 1.0  # m/s
     t_c: float = 30.0  # s, collision time
     dt: float = 0.01  # s, sampling interval
