@@ -279,7 +279,7 @@ def adj_ownship_heading_absolute(headings_difference, absolute_bearings, bearing
             # bearings_rate = bearings_difference[-1]
             if abs(bearings_rate*delta_time) <= angular_noises: #or abs(bearings_difference[-1]*delta_time) <= angular_sizes[-1]:
 
-                if abs(bearings_rate) <= 1e-5:  # True CBDR (bearing rate ≈ 0)
+                if abs(bearings_rate) <= 1e-4:  # True CBDR (bearing rate ≈ 0)
                     if current_relative_bearing <= 0:  # Ship is on port side (left)
                         if abs(current_relative_bearing) <= 90:
                             rate_of_turn = -avoidance_gain  # Turn left (negative)
@@ -851,3 +851,27 @@ if __name__ == "__main__":
         ship_config=left_turn_ship,
         goal_config=DEFAULT_GOAL_CONFIG
     )
+
+
+if angular_sizes[-1] > ALPHA_TRIG:​
+    avoidance_gain = (angular_noises - ALPHA_TRIG) * K_GAIN​
+    bearings_rate = absolute_bearings_difference[-1] #+ np.random.normal(0, 0.022)​
+    if abs(bearings_rate*delta_time) <= angular_noises: 
+        if abs(bearings_rate) <= 1e-4:  # True CBDR (bearing rate ≈ 0)​
+            if current_relative_bearing <= 0:  # Ship is on port side (left)​
+                if abs(current_relative_bearing) <= 90:​
+                    rate_of_turn = -avoidance_gain  # Turn left (negative)​
+                else:​
+                    rate_of_turn = avoidance_gain   # Turn right (positive)​
+            else:  # Ship is on starboard side (right)​
+                if abs(current_relative_bearing) <= 90:​
+                    rate_of_turn = avoidance_gain   # Turn right (positive)​
+                else:​
+                    rate_of_turn = -avoidance_gain  # Turn left (negative)​
+        else:​
+            # Non-zero bearing rate case​
+            if abs(current_relative_bearing) <= 90:  # Target is ahead​
+                rate_of_turn = -np.sign(bearings_rate) * avoidance_gain​
+            else:  # Target is behind​
+                rate_of_turn = np.sign(bearings_rate) * avoidance_gain
+else:​
