@@ -5,23 +5,23 @@ import math
 # Default simulation parameters
 DEFAULT_OWNSHIP_CONFIG = {
     "name": "Ownship",
-    "velocity": 1,
+    "velocity": 1.0,
     "acceleration": 0,
     "heading": 0.0,
     "rate_of_turn": 0,
     "position": [0, 0, 0],
-    "size": 0.5,
+    "size": 2.0,
     "max_rate_of_turn": [22, 22]
 }
 
 DEFAULT_SHIP_CONFIG = {
     "name": "Ship A", 
-    "velocity": 2.0,
+    "velocity": 1.0,
     "acceleration": 0,
-    "heading": 180.0,
+    "heading": -90.0,
     "rate_of_turn": 0,
-    "position": [75, 0, 0],
-    "size": 0.5,
+    "position": [50, 0, 0],
+    "size": 2.0,
     "max_rate_of_turn": [3, 3]
 }
 
@@ -31,8 +31,8 @@ DEFAULT_GOAL_CONFIG = {
     "acceleration": 0,
     "heading": 0,
     "rate_of_turn": 0,
-    "position": [50, 0, 0],
-    "size": 10.0,
+    "position": [100, 0, 0],
+    "size": 1.0,
     "max_rate_of_turn": [0, 0]
 }
 
@@ -565,10 +565,33 @@ def plot_results(result, delta_time, title_prefix=""):
     plt.show()
 
 def plot_all_subplots(result, delta_time, title_prefix=""):
-    """Plot all 8 subplots in a 2x4 grid"""
+    """Plot all subplots in a 3x4 grid"""
+
+    time_positions = np.arange(len(result['ownship_positions'])) * delta_time if len(result['ownship_positions']) > 0 else np.array([])
+    bearing_times = np.arange(len(result['bearings_difference'])) * delta_time if len(result['bearings_difference']) > 0 else np.array([])
+    absolute_bearing_times = np.arange(len(result['absolute_bearings_difference'])) * delta_time if len(result['absolute_bearings_difference']) > 0 else np.array([])
+
+    # Center distance metrics r(t)
+    if len(result['ownship_positions']) > 0 and len(result['ship_positions']) == len(result['ownship_positions']):
+        center_distances = np.linalg.norm(result['ownship_positions'] - result['ship_positions'], axis=1)
+    else:
+        center_distances = np.array([])
+
+    if len(center_distances) > 1:
+        dr_dt = np.gradient(center_distances, delta_time)
+        d2r_dt2 = np.gradient(dr_dt, delta_time)
+    else:
+        dr_dt = np.zeros_like(center_distances)
+        d2r_dt2 = np.zeros_like(center_distances)
+
+    # Bearing second derivative d²φ/dt²
+    if len(result['bearings_difference']) > 1:
+        d2phi_dt2 = np.gradient(result['bearings_difference'], delta_time)
+    else:
+        d2phi_dt2 = np.zeros_like(result['bearings_difference'])
     
     # 1. Ship Positions
-    plt.subplot(2, 4, 1)
+    plt.subplot(3, 4, 1)
     ownship_line, = plt.plot(result['ownship_positions'][:, 1], result['ownship_positions'][:, 0], label='Ownship')
     ship_line, = plt.plot(result['ship_positions'][:, 1], result['ship_positions'][:, 0], label='Ship A')
     
@@ -639,7 +662,7 @@ def plot_all_subplots(result, delta_time, title_prefix=""):
     plt.axis('equal')
     
     # 2. Bearing Plot
-    plt.subplot(2, 4, 2)
+    plt.subplot(3, 4, 2)
     plt.plot(result['bearings'], np.arange(len(result['bearings'])) * delta_time, label='Relative Bearing', alpha=1.0)
     absolute_bearings_normalized = result['absolute_bearings'].copy()
     absolute_bearings_normalized[absolute_bearings_normalized > 180] -= 360
@@ -658,7 +681,7 @@ def plot_all_subplots(result, delta_time, title_prefix=""):
     plt.grid(True)
     
     # 3. Angular Size Plot
-    plt.subplot(2, 4, 3)
+    plt.subplot(3, 4, 3)
     plt.plot(np.arange(len(result['angular_sizes'])) * delta_time, result['angular_sizes'], label='Angular Size')
     
     max_angular_size = np.max(result['angular_sizes'])
@@ -684,7 +707,7 @@ def plot_all_subplots(result, delta_time, title_prefix=""):
     plt.grid(True)
     
     # 4. Distance Plot
-    plt.subplot(2, 4, 4)
+    plt.subplot(3, 4, 4)
     plt.plot(np.arange(len(result['distances'])) * delta_time, result['distances'], label='Surface Distance')
     
     min_distance = np.min(result['distances'])
@@ -710,10 +733,9 @@ def plot_all_subplots(result, delta_time, title_prefix=""):
     plt.grid(True)
     
     # 5. Relative Bearing Rate (d/dt)
-    plt.subplot(2, 4, 5)
-    t_rel_rate = np.arange(len(result['bearings_difference'])) * delta_time
-    if len(t_rel_rate) > 0:
-        plt.plot(t_rel_rate, result['bearings_difference'], label='Relative Bearing Rate')
+    plt.subplot(3, 4, 5)
+    if len(bearing_times) > 0:
+        plt.plot(bearing_times, result['bearings_difference'], label='Relative Bearing Rate')
     plt.axhline(y=0, color='black', linestyle='--', alpha=0.5, label='0 Line')
     plt.xlabel('Time (s)')
     plt.ylabel('Bearing rate (deg/s)')
@@ -722,7 +744,7 @@ def plot_all_subplots(result, delta_time, title_prefix=""):
     plt.grid(True)
     
     # 6. Ship Velocities
-    plt.subplot(2, 4, 6)
+    plt.subplot(3, 4, 6)
     plt.plot(np.arange(len(result['ownship_velocities'])) * delta_time, result['ownship_velocities'], 
              label='Ownship Velocity', color='blue')
     plt.plot(np.arange(len(result['ship_velocities'])) * delta_time, result['ship_velocities'], 
@@ -734,7 +756,7 @@ def plot_all_subplots(result, delta_time, title_prefix=""):
     plt.grid(True)
     
     # 7. Ownship Heading
-    plt.subplot(2, 4, 7)
+    plt.subplot(3, 4, 7)
     plt.plot(np.arange(len(result['ownship_headings'])) * delta_time, result['ownship_headings'], 
              label='Ownship Heading', color='blue')
     plt.xlabel('Time (s)')
@@ -744,16 +766,62 @@ def plot_all_subplots(result, delta_time, title_prefix=""):
     plt.grid(True)
     
     # 8. Absolute Bearing Rate (d/dt)
-    plt.subplot(2, 4, 8)
-    t_abs_rate = np.arange(len(result['absolute_bearings_difference'])) * delta_time
-    if len(t_abs_rate) > 0:
-        plt.plot(t_abs_rate, result['absolute_bearings_difference'], label='Absolute Bearing Rate', linewidth=1)
+    plt.subplot(3, 4, 8)
+    if len(absolute_bearing_times) > 0:
+        plt.plot(absolute_bearing_times, result['absolute_bearings_difference'], label='Absolute Bearing Rate', linewidth=1)
     plt.axhline(y=0, color='black', linestyle='--', alpha=0.5, label='0 Line')
     plt.xlabel('Time (s)')
     plt.ylabel('Bearing rate (deg/s)')
     plt.title(f'{title_prefix}Absolute Bearing Rate')
     plt.legend()
     plt.grid(True)
+
+    # 9. d²φ/dt²
+    plt.subplot(3, 4, 9)
+    if len(bearing_times) > 0:
+        plt.plot(bearing_times, d2phi_dt2, label='d²φ/dt²')
+    plt.axhline(y=0, color='black', linestyle='--', alpha=0.5)
+    plt.title("d²φ/dt² [deg/s²]")
+    plt.xlabel("t [s]")
+    plt.ylabel("d²φ/dt² [deg/s²]")
+    plt.grid(True, linewidth=0.6)
+    if len(bearing_times) > 0:
+        plt.legend()
+
+    # 10. Distance r(t)
+    plt.subplot(3, 4, 10)
+    if len(center_distances) > 0:
+        plt.plot(time_positions, center_distances, label='r(t)')
+    plt.title("Distance r(t) [m]")
+    plt.xlabel("t [s]")
+    plt.ylabel("r [m]")
+    plt.grid(True, linewidth=0.6)
+    if len(center_distances) > 0:
+        plt.legend()
+
+    # 11. dr/dt
+    plt.subplot(3, 4, 11)
+    if len(center_distances) > 0:
+        plt.plot(time_positions, dr_dt, label='dr/dt')
+    plt.axhline(y=0, color='black', linestyle='--', alpha=0.5)
+    plt.title("dr/dt [m/s]")
+    plt.xlabel("t [s]")
+    plt.ylabel("dr/dt [m/s]")
+    plt.grid(True, linewidth=0.6)
+    if len(center_distances) > 0:
+        plt.legend()
+
+    # 12. d²r/dt²
+    plt.subplot(3, 4, 12)
+    if len(center_distances) > 0:
+        plt.plot(time_positions, d2r_dt2, label='d²r/dt²')
+    plt.axhline(y=0, color='black', linestyle='--', alpha=0.5)
+    plt.title("d²r/dt² [m/s²]")
+    plt.xlabel("t [s]")
+    plt.ylabel("d²r/dt² [m/s²]")
+    plt.grid(True, linewidth=0.6)
+    if len(center_distances) > 0:
+        plt.legend()
 
 def run_comparison(ownship_config=None, ship_config=None, goal_config=None, 
                   time_steps=None, delta_time=None, ALPHA_TRIG=None):
@@ -840,9 +908,9 @@ def run_simulation(ownship_config=None, ship_config=None, goal_config=None,
 if __name__ == "__main__":
 
     left_turn_ship = create_collision_scenario_with_turning(
-        ship_velocity=2.0,
+        ship_velocity=1.0,
         ship_heading=-90.0,
-        ship_rate_of_turn=1.0,
+        ship_rate_of_turn=0.0,
         collision_ratio=0.5,
     )
     left_turn_ship['size'] = 0.5
